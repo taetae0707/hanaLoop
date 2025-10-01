@@ -1,103 +1,213 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+import React, { useEffect, useState } from "react";
+import { Layout } from "@/components/layout/Layout";
+import { ExecutiveSummary } from "@/components/dashboard/executive-summary";
+import { CarbonTaxCard } from "@/components/dashboard/carbon-tax-card";
+import { SubsidiaryEmissionsChart } from "@/components/charts/subsidiary-emissions-chart";
+import { MonthlyTrendChart } from "@/components/charts/monthly-trend-chart";
+import { ScopeDonutChart } from "@/components/charts/scope-donut-chart";
+import { CompanyTable } from "@/components/dashboard/company-table";
+import {
+	fetchEmissionSummary,
+	fetchMonthlyTrends,
+	fetchCompanyEmissionSummaries,
+	fetchCompanies,
+} from "@/lib/api";
+import {
+	EmissionSummary,
+	MonthlyTrend,
+	CompanyEmissionSummary,
+	Company,
+} from "@/types";
+import { AlertTriangle, TrendingUp, Calculator } from "lucide-react";
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+export default function Dashboard() {
+	const [summary, setSummary] = useState<EmissionSummary | null>(null);
+	const [trends, setTrends] = useState<MonthlyTrend[]>([]);
+	const [companySummaries, setCompanySummaries] = useState<
+		CompanyEmissionSummary[]
+	>([]);
+	const [companies, setCompanies] = useState<Company[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+
+	// 탄소세 관련 상수
+	const CARBON_TAX_RATE = 25; // $25/tCO2
+	const TARGET_REDUCTION = 15; // 15% 감축 목표
+
+	useEffect(() => {
+		const loadData = async () => {
+			try {
+				setLoading(true);
+				setError(null);
+
+				const [summaryData, trendsData, companySummariesData, companiesData] =
+					await Promise.all([
+						fetchEmissionSummary(),
+						fetchMonthlyTrends(),
+						fetchCompanyEmissionSummaries(),
+						fetchCompanies(),
+					]);
+
+				setSummary(summaryData);
+				setTrends(trendsData);
+				setCompanySummaries(companySummariesData);
+				setCompanies(companiesData);
+			} catch (err) {
+				setError("데이터를 불러오는 중 오류가 발생했습니다.");
+				console.error("Error loading dashboard data:", err);
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		loadData();
+	}, []);
+
+	if (loading) {
+		return (
+			<Layout>
+				<div className="flex items-center justify-center min-h-[400px]">
+					<div className="flex items-center space-x-2">
+						<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+						<span className="text-gray-600">데이터를 불러오는 중...</span>
+					</div>
+				</div>
+			</Layout>
+		);
+	}
+
+	if (error) {
+		return (
+			<Layout>
+				<div className="flex items-center justify-center min-h-[400px]">
+					<div className="text-center">
+						<AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+						<h3 className="text-lg font-medium text-gray-900 mb-2">
+							오류가 발생했습니다
+						</h3>
+						<p className="text-gray-600">{error}</p>
+					</div>
+				</div>
+			</Layout>
+		);
+	}
+
+	if (!summary) return null;
+
+	// 탄소세 계산
+	const currentYearTax = summary.totalEmissions * CARBON_TAX_RATE;
+	const nextYearProjectedEmissions = summary.totalEmissions * 1.05; // 5% 증가 가정
+	const nextYearTax = nextYearProjectedEmissions * CARBON_TAX_RATE * 1.1; // 탄소세율 10% 인상 가정
+	const potentialSavings =
+		((summary.totalEmissions * TARGET_REDUCTION) / 100) * CARBON_TAX_RATE;
+
+	return (
+		<Layout>
+			<div className="space-y-6">
+				{/* Page Header - 임원 중심 */}
+				<div className="bg-gradient-to-r from-slate-800 to-slate-900 rounded-xl p-4 md:p-6 text-white">
+					<div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+						<div>
+							<h1 className="text-xl md:text-2xl font-bold mb-2">
+								탄소 경영 대시보드
+							</h1>
+							<p className="text-slate-300 text-sm md:text-base">
+								자회사/관계사 탄소 배출량 통합 관리 • 탄소세 영향 분석
+							</p>
+						</div>
+						<div className="text-left md:text-right">
+							<div className="text-2xl md:text-3xl font-bold">
+								₩{((nextYearTax * 1300) / 100000000).toFixed(0)}억
+							</div>
+							<div className="text-sm text-slate-300">2025년 예상 탄소세</div>
+						</div>
+					</div>
+				</div>
+
+				{/* Executive Summary - 임원용 핵심 지표 */}
+				<ExecutiveSummary
+					summary={summary}
+					companies={companySummaries}
+					carbonTaxRate={CARBON_TAX_RATE}
+				/>
+
+				{/* 탄소세 영향 분석 카드 */}
+				<CarbonTaxCard
+					totalEmissions={summary.totalEmissions}
+					carbonTaxRate={CARBON_TAX_RATE}
+					projectedTax={nextYearTax}
+					targetReduction={TARGET_REDUCTION}
+					potentialSavings={potentialSavings}
+				/>
+
+				{/* 자회사/관계사별 배출량 분석 */}
+				<div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+					{/* 월별 추이 - 더 넓은 영역 */}
+					<div className="xl:col-span-2">
+						<MonthlyTrendChart
+							data={trends}
+							title="월별 배출량 추이 및 탄소세 영향"
+						/>
+					</div>
+
+					{/* 스코프별 비율 */}
+					<div className="xl:col-span-1">
+						<ScopeDonutChart data={summary} />
+					</div>
+				</div>
+
+				{/* 자회사별 상세 분석 */}
+				<SubsidiaryEmissionsChart companies={companies} />
+
+				{/* 회사별 리스크 관리 테이블 */}
+				<CompanyTable
+					data={companySummaries}
+					title="자회사/관계사 배출량 및 리스크 현황"
+				/>
+
+				{/* 경영진 액션 아이템 */}
+				<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+					<div className="bg-gradient-to-r from-red-50 to-red-100 rounded-xl p-6 border border-red-200">
+						<div className="flex items-center space-x-2 mb-4">
+							<AlertTriangle className="h-5 w-5 text-red-600" />
+							<h3 className="font-semibold text-red-900">즉시 조치 필요</h3>
+						</div>
+						<p className="text-2xl font-bold text-red-600 mb-2">
+							{companySummaries.filter((c) => c.riskLevel === "high").length}개
+							회사
+						</p>
+						<p className="text-sm text-red-700">
+							배출량 급증으로 탄소세 부담 증가
+						</p>
+					</div>
+
+					<div className="bg-gradient-to-r from-green-50 to-green-100 rounded-xl p-6 border border-green-200">
+						<div className="flex items-center space-x-2 mb-4">
+							<Calculator className="h-5 w-5 text-green-600" />
+							<h3 className="font-semibold text-green-900">절약 기회</h3>
+						</div>
+						<p className="text-2xl font-bold text-green-600 mb-2">
+							₩{((potentialSavings * 1300) / 100000000).toFixed(1)}억원
+						</p>
+						<p className="text-sm text-green-700">
+							{TARGET_REDUCTION}% 감축 달성시 연간 절약
+						</p>
+					</div>
+
+					<div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200">
+						<div className="flex items-center space-x-2 mb-4">
+							<TrendingUp className="h-5 w-5 text-blue-600" />
+							<h3 className="font-semibold text-blue-900">투자 권고</h3>
+						</div>
+						<p className="text-2xl font-bold text-blue-600 mb-2">
+							₩{((potentialSavings * 0.3 * 1300) / 100000000).toFixed(1)}억원
+						</p>
+						<p className="text-sm text-blue-700">감축 기술 투자 권장 규모</p>
+					</div>
+				</div>
+			</div>
+		</Layout>
+	);
 }
