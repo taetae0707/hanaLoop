@@ -20,7 +20,6 @@ import {
 } from "@/lib/api";
 import { Supplier, SupplierTarget } from "@/types/supplier-types";
 import { UpstreamEmissionDetails } from "@/types/upstream-types";
-import { AllocationMethod } from "@/types/target-types";
 import {
 	ArrowLeft,
 	Target,
@@ -143,13 +142,6 @@ export default function SupplierTargetManagement() {
 
 	// YTD는 loadAnnualTarget에서 자동으로 계산되므로 별도 처리 불필요
 
-	const handleSaveAnnualTarget = (
-		totalBudget: number,
-		method: AllocationMethod
-	) => {
-		setAnnualTarget(totalBudget, method);
-	};
-
 	const handleRecordEmission = (month: number, actual: number) => {
 		recordEmission(month, actual);
 	};
@@ -254,7 +246,6 @@ export default function SupplierTargetManagement() {
 							ytdVariance={ytd.variance}
 							achievementRate={ytdAchievementRate}
 							currentMonth={currentMonth}
-							onSaveTarget={handleSaveAnnualTarget}
 						/>
 
 						{/* 차트 섹션 */}

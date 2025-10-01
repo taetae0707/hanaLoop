@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { AnnualTargetCard } from "./AnnualTargetCard";
 import { QuarterlyProgressCard } from "./QuarterlyProgressCard";
 import { YTDDashboard } from "./YTDDashboard";
-import { AnnualTarget, AllocationMethod } from "@/types/target-types";
+import { AnnualTarget } from "@/types/target-types";
 import { useQuarterlyProgress } from "@/hooks/useQuarterlyProgress";
 
 interface TargetManagementSectionProps {
@@ -17,7 +17,6 @@ interface TargetManagementSectionProps {
 	ytdVariance: number;
 	achievementRate: number;
 	currentMonth: number;
-	onSaveTarget: (totalBudget: number, method: AllocationMethod) => void;
 }
 
 export function TargetManagementSection({
@@ -29,7 +28,6 @@ export function TargetManagementSection({
 	ytdVariance,
 	achievementRate,
 	currentMonth,
-	onSaveTarget,
 }: TargetManagementSectionProps) {
 	// 분기별 Hook
 	const q1Progress = useQuarterlyProgress(companyId, year, 1);
@@ -46,7 +44,6 @@ export function TargetManagementSection({
 					totalBudget={annualTarget.totalBudget}
 					allocationMethod={annualTarget.allocationMethod}
 					ytdActual={ytdActual}
-					onSave={onSaveTarget}
 				/>
 
 				{/* 분기별 진행 현황 */}

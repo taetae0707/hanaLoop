@@ -31,8 +31,7 @@ export function calculateAnnualGoal(
 
 /**
  * 배분 방식 텍스트 변환
- * @param method 배분 방식
- * @returns 한글 텍스트
+
  */
 export function getAllocationMethodText(
 	method: "pro-rata" | "seasonal"
@@ -40,11 +39,6 @@ export function getAllocationMethodText(
 	return method === "pro-rata" ? "균등 배분" : "계절 가중";
 }
 
-/**
- * 배분 방식 상세 설명 텍스트
- * @param method 배분 방식
- * @returns 한글 설명
- */
 export function getAllocationMethodDescription(
 	method: "pro-rata" | "seasonal"
 ): string {
