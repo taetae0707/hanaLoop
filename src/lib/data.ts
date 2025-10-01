@@ -798,36 +798,72 @@ export const dummyAnnualTarget: AnnualTarget = {
 	allocationMethod: "seasonal",
 	quarterlyTargets: [
 		// Q1: 1-3월 (난방 시즌) - actual: 98.5+95.2+102.8=296.5, budget: 103.6+103.6+103.6=310.8
-		{ quarter: 1, budget: 310.8, actual: 296.5, remaining: 14.3 },
+		{ quarter: 1, budget: 0, actual: 296.5, remaining: 0 },
 		// Q2: 4-6월 (봄-초여름) - actual: 95.1+98.8+102.4=296.3, budget: 86.3+86.3+86.3=258.9
-		{ quarter: 2, budget: 258.9, actual: 296.3, remaining: -37.4 },
+		{ quarter: 2, budget: 0, actual: 296.3, remaining: 0 },
 		// Q3: 7-9월 (냉방 시즌) - actual: 90+91+92=273, budget: 112.2+112.2+129.6=354.0
-		{ quarter: 3, budget: 354.0, actual: 273, remaining: 81.0 },
+		{ quarter: 3, budget: 0, actual: 273, remaining: 0 },
 		// Q4: 10-12월 (가을-난방) - actual: 0+0+0=0, budget: 97.8+97.8+80.4=276.0
-		{ quarter: 4, budget: 276.0, actual: 0, remaining: 276.0 },
+		{ quarter: 4, budget: 0, actual: 0, remaining: 0 },
 	],
 	monthlyEmissions: [
 		// Q1 - 난방 시즌 (1월: 1.3배, 2월: 1.2배, 3월: 1.1배 가중치)
-		{ year: 2025, month: 1, actual: 98.5, budget: 103.6 },
-		{ year: 2025, month: 2, actual: 95.2, budget: 103.6 },
-		{ year: 2025, month: 3, actual: 102.8, budget: 103.6 },
+		{ year: 2025, month: 1, actual: 98.5, budget: 0 },
+		{ year: 2025, month: 2, actual: 95.2, budget: 0 },
+		{ year: 2025, month: 3, actual: 102.8, budget: 0 },
 		// Q2 - 봄/초여름 (4-5월: 0.9배, 6월: 1.2배 냉방 시작)
-		{ year: 2025, month: 4, actual: 95.1, budget: 86.3 },
-		{ year: 2025, month: 5, actual: 98.8, budget: 86.3 },
-		{ year: 2025, month: 6, actual: 102.4, budget: 86.3 },
+		{ year: 2025, month: 4, actual: 95.1, budget: 0 },
+		{ year: 2025, month: 5, actual: 98.8, budget: 0 },
+		{ year: 2025, month: 6, actual: 102.4, budget: 0 },
 		// Q3 - 냉방 시즌 (7-8월: 1.4배, 9월: 1.1배)
-		{ year: 2025, month: 7, actual: 90, budget: 112.2 },
-		{ year: 2025, month: 8, actual: 91, budget: 112.2 },
-		{ year: 2025, month: 9, actual: 92, budget: 129.6 },
+		{ year: 2025, month: 7, actual: 90, budget: 0 },
+		{ year: 2025, month: 8, actual: 91, budget: 0 },
+		{ year: 2025, month: 9, actual: 92, budget: 0 },
 		// Q4 - 가을/난방 (10월: 0.9배, 11월: 1.2배, 12월: 1.3배)
-		{ year: 2025, month: 10, actual: 0, budget: 97.8 },
-		{ year: 2025, month: 11, actual: 0, budget: 97.8 },
-		{ year: 2025, month: 12, actual: 0, budget: 80.4 },
+		{ year: 2025, month: 10, actual: 0, budget: 0 },
+		{ year: 2025, month: 11, actual: 0, budget: 0 },
+		{ year: 2025, month: 12, actual: 0, budget: 0 },
 	],
-	ytdActual: 871.8,
+	ytdActual: 0,
 	ytdBudget: 923.7,
 	ytdVariance: 51.9,
 };
+// export const dummyAnnualTarget: AnnualTarget = {
+// 	year: 2025,
+// 	totalBudget: 1199.7,
+// 	allocationMethod: "seasonal",
+// 	quarterlyTargets: [
+// 		// Q1: 1-3월 (난방 시즌) - actual: 98.5+95.2+102.8=296.5, budget: 103.6+103.6+103.6=310.8
+// 		{ quarter: 1, budget: 310.8, actual: 296.5, remaining: 14.3 },
+// 		// Q2: 4-6월 (봄-초여름) - actual: 95.1+98.8+102.4=296.3, budget: 86.3+86.3+86.3=258.9
+// 		{ quarter: 2, budget: 258.9, actual: 296.3, remaining: -37.4 },
+// 		// Q3: 7-9월 (냉방 시즌) - actual: 90+91+92=273, budget: 112.2+112.2+129.6=354.0
+// 		{ quarter: 3, budget: 354.0, actual: 273, remaining: 81.0 },
+// 		// Q4: 10-12월 (가을-난방) - actual: 0+0+0=0, budget: 97.8+97.8+80.4=276.0
+// 		{ quarter: 4, budget: 276.0, actual: 0, remaining: 276.0 },
+// 	],
+// 	monthlyEmissions: [
+// 		// Q1 - 난방 시즌 (1월: 1.3배, 2월: 1.2배, 3월: 1.1배 가중치)
+// 		{ year: 2025, month: 1, actual: 98.5, budget: 103.6 },
+// 		{ year: 2025, month: 2, actual: 95.2, budget: 103.6 },
+// 		{ year: 2025, month: 3, actual: 102.8, budget: 103.6 },
+// 		// Q2 - 봄/초여름 (4-5월: 0.9배, 6월: 1.2배 냉방 시작)
+// 		{ year: 2025, month: 4, actual: 95.1, budget: 86.3 },
+// 		{ year: 2025, month: 5, actual: 98.8, budget: 86.3 },
+// 		{ year: 2025, month: 6, actual: 102.4, budget: 86.3 },
+// 		// Q3 - 냉방 시즌 (7-8월: 1.4배, 9월: 1.1배)
+// 		{ year: 2025, month: 7, actual: 90, budget: 112.2 },
+// 		{ year: 2025, month: 8, actual: 91, budget: 112.2 },
+// 		{ year: 2025, month: 9, actual: 92, budget: 129.6 },
+// 		// Q4 - 가을/난방 (10월: 0.9배, 11월: 1.2배, 12월: 1.3배)
+// 		{ year: 2025, month: 10, actual: 0, budget: 97.8 },
+// 		{ year: 2025, month: 11, actual: 0, budget: 97.8 },
+// 		{ year: 2025, month: 12, actual: 0, budget: 80.4 },
+// 	],
+// 	ytdActual: 871.8,
+// 	ytdBudget: 923.7,
+// 	ytdVariance: 51.9,
+// };
 
 // 회사별 목표 관리 더미 데이터
 export const dummyCompanyTargets: CompanyTargetManagement[] = [

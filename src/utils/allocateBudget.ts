@@ -33,62 +33,63 @@ export function allocateProRata(
 }
 
 /**
- * 가중치 기반 분배 - 월별 가중치를 적용하여 분배
+ * 가중치 기반 분배 - 월별 가중치를 적용하여 각 월별 예산 계산
  * @param totalBudget 연간 총 예산
  * @param weights 월별 가중치 (1-12월)
- * @returns 분기별 목표 배열
+ * @param year 연도
+ * @returns 월별 예산 배열
  */
 export function allocateSeasonalByWeights(
 	totalBudget: number,
-	weights: SeasonalWeights
-): QuarterlyTarget[] {
-	// Q1: 1-3월, Q2: 4-6월, Q3: 7-9월, Q4: 10-12월
-	const quarterWeights = [
-		[1, 2, 3], // Q1 (난방)
-		[4, 5, 6], // Q2
-		[7, 8, 9], // Q3 (냉방)
-		[10, 11, 12], // Q4 (난방)
-	].map((months) => months.reduce((sum, m) => sum + (weights[m] || 1), 0) / 3);
+	weights: SeasonalWeights,
+	year: number
+): MonthlyEmission[] {
+	// 월별 기본 예산 = 연간 예산 / 12
+	const monthlyBaseBudget = totalBudget / 12;
 
-	const totalWeight = quarterWeights.reduce((a, b) => a + b, 0);
+	// 각 월별 예산 계산 (가중치 적용)
+	const monthlyBudgets: MonthlyEmission[] = [];
 
-	return quarterWeights.map((weight, i) => ({
-		quarter: (i + 1) as 1 | 2 | 3 | 4,
-		budget: round1((totalBudget * weight) / totalWeight),
-		actual: 0,
-		remaining: round1((totalBudget * weight) / totalWeight),
-	}));
+	for (let month = 1; month <= 12; month++) {
+		const weightedBudget = round1(monthlyBaseBudget * (weights[month] || 1));
+		monthlyBudgets.push({
+			year,
+			month: month as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12,
+			budget: weightedBudget,
+			actual: 0,
+		});
+	}
+
+	return monthlyBudgets;
 }
 
 /**
- * 분기별 목표를 월별 예산으로 변환
- * @param quarterlyTargets 분기별 목표 배열
- * @param year 연도
- * @returns 월별 배출 데이터 배열
+ * 월별 예산을 분기별 예산으로 변환
+ * @param monthlyBudgets 월별 예산 배열
+ * @returns 분기별 목표 배열
  */
-export function allocateMonthlyBudgetsFromQuarters(
-	quarterlyTargets: QuarterlyTarget[],
-	year: number
-): MonthlyEmission[] {
-	const monthlyEmissions: MonthlyEmission[] = [];
+export function convertMonthlyToQuarterlyBudgets(
+	monthlyBudgets: MonthlyEmission[]
+): QuarterlyTarget[] {
+	const quarterlyTargets: QuarterlyTarget[] = [];
 
-	for (const qt of quarterlyTargets) {
-		// 분기별 예산을 3개월에 균등 분배
-		const monthlyBudget = round1(qt.budget / 3);
+	// 각 분기별로 월별 예산 합산
+	for (let quarter = 1; quarter <= 4; quarter++) {
+		const startMonth = (quarter - 1) * 3 + 1;
+		const endMonth = quarter * 3;
 
-		// 해당 분기의 월 범위
-		const startMonth = (qt.quarter - 1) * 3 + 1;
+		// 해당 분기의 월별 예산 합산
+		const quarterlyBudget = monthlyBudgets
+			.filter((month) => month.month >= startMonth && month.month <= endMonth)
+			.reduce((sum, month) => sum + month.budget, 0);
 
-		// 각 월에 대한 데이터 생성
-		for (let i = 0; i < 3; i++) {
-			monthlyEmissions.push({
-				year,
-				month: startMonth + i,
-				budget: monthlyBudget,
-				actual: 0, // 초기값은 0
-			});
-		}
+		quarterlyTargets.push({
+			quarter: quarter as 1 | 2 | 3 | 4,
+			budget: round1(quarterlyBudget),
+			actual: 0,
+			remaining: round1(quarterlyBudget),
+		});
 	}
 
-	return monthlyEmissions;
+	return quarterlyTargets;
 }

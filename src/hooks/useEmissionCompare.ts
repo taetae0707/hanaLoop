@@ -20,13 +20,7 @@ export interface EmissionCompareParams {
  *
  * @param params - 현재 월과 전달 월 데이터
  * @returns EmissionCompareData | null - 증감 데이터 또는 null (비교 불가능한 경우)
- *
- * @example
- * const compare = useEmissionCompare({
- *   currentMonthValues: { rawMaterialQuantity: 100 },
- *   previousMonthValues: { rawMaterialQuantity: 85 }
- * });
- * // { percent: 17.6, isIncrease: true, ... }
+
  */
 export function useEmissionCompare({
 	currentMonthValues,
