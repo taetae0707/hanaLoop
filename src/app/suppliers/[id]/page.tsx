@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Breadcrumb } from "@/components/common/nav/Breadcrumb";
@@ -34,7 +34,7 @@ import { useEmissionStore } from "@/store/emissionStore";
 import { useTargetStore } from "@/store/targetStore";
 import { useAnnualTarget } from "@/hooks/useAnnualTarget";
 import { useMonthlyEmission } from "@/hooks/useMonthlyEmission";
-import { dummyCompanyTargets } from "@/lib/data";
+import { dummyAnnualTarget } from "@/lib/data";
 
 export default function SupplierTargetManagement() {
 	const params = useParams();
@@ -131,37 +131,17 @@ export default function SupplierTargetManagement() {
 
 	// 연간 목표 초기화 및 더미 데이터 로드
 	useEffect(() => {
-		// 스토어에 데이터가 없거나, 월별 실적이 모두 0인 경우 더미 데이터 로드
-		const needsLoad =
-			!annualTarget ||
-			(annualTarget.monthlyEmissions &&
-				annualTarget.monthlyEmissions.every((me) => me.actual === 0));
+		// 항상 더미 데이터를 로드 (캐시된 이전 데이터 덮어쓰기)
+		if (supplierId) {
+			console.log(`Supplier page: Loading dummy data for ${supplierId}...`);
 
-		if (needsLoad && supplierId) {
-			console.log("Supplier page: Loading dummy data with actual emissions...");
-
-			// 중앙 관리되는 더미 데이터 사용
-			const dummyCompany = dummyCompanyTargets[0]; // Acme Corp의 데이터 사용
-			const dummyTarget = dummyCompany.targets[0];
-
-			// 더미 데이터를 직접 로드 (actual 값 포함)
-			targetStore.loadAnnualTarget(supplierId, dummyTarget);
+			// dummyAnnualTarget 데이터를 직접 사용
+			targetStore.loadAnnualTarget(supplierId, dummyAnnualTarget);
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [supplierId, annualTarget]);
+	}, [supplierId]);
 
-	// YTD 계산 여부 추적을 위한 ref
-	const ytdCalculated = useRef(false);
-
-	// YTD 재계산 (한 번만 실행)
-	useEffect(() => {
-		if (annualTarget && !ytdCalculated.current) {
-			ytdCalculated.current = true;
-			targetStore.recalculateYTD(supplierId, year, currentMonth);
-		}
-		// annualTarget을 의존성 배열에서 제거하여 무한 루프 방지
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [supplierId, year, currentMonth, targetStore]);
+	// YTD는 loadAnnualTarget에서 자동으로 계산되므로 별도 처리 불필요
 
 	const handleSaveAnnualTarget = (
 		totalBudget: number,

@@ -13,8 +13,9 @@ export function useQuarterlyProgress(
 
 	const quarterlyTarget = store.getQuarterlyProgress(companyId, year, quarter);
 
-	const progressRate = useMemo(() => {
+	const budgetUsageRate = useMemo(() => {
 		if (!quarterlyTarget || quarterlyTarget.budget === 0) return 0;
+		// 예산 사용률: 실제 배출량 / 예산 * 100
 		return (quarterlyTarget.actual / quarterlyTarget.budget) * 100;
 	}, [quarterlyTarget]);
 
@@ -29,7 +30,7 @@ export function useQuarterlyProgress(
 
 	return {
 		quarterlyTarget,
-		progressRate,
+		budgetUsageRate,
 		isOverBudget,
 		updateBudget,
 	};

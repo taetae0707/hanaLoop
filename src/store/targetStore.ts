@@ -4,19 +4,13 @@ import {
 	AnnualTarget,
 	CompanyTargetManagement,
 	SeasonalWeights,
-	AllocationMethod,
 	QuarterlyTarget,
 } from "@/types/target-types";
 import { round1 } from "@/utils/numberUtils";
-import {
-	allocateProRata,
-	allocateSeasonalByWeights,
-	allocateMonthlyBudgetsFromQuarters,
-	validateSeasonalWeights,
-	normalizeSeasonalWeights,
-} from "@/utils/allocationService";
-import { recalcQuarterlyTargets, calcYTD } from "@/utils/aggregationService";
+import { allocateMonthlyBudgetsFromQuarters } from "@/utils/allocateBudget";
+// YTD 계산을 인라인으로 처리하여 복잡성 제거
 import { upsertCompanyTarget, findTargetIndex } from "@/utils/storeUtils";
+import { defaultSeasonalWeights } from "@/lib/data";
 
 interface TargetState {
 	// State
@@ -26,13 +20,13 @@ interface TargetState {
 	// Actions - 계절 가중치 설정
 	setSeasonalWeights: (weights: SeasonalWeights) => void;
 
-	// Actions - 목표 설정
-	setAnnualTarget: (
-		companyId: string,
-		year: number,
-		totalBudget: number,
-		method: AllocationMethod
-	) => void;
+	// Actions - 목표 설정 (나중에 서버 연결 시 사용)
+	// setAnnualTarget: (
+	// 	companyId: string,
+	// 	year: number,
+	// 	totalBudget: number,
+	// 	method: AllocationMethod
+	// ) => void;
 
 	// Actions - 초기 데이터 로드 (더미 데이터용)
 	loadAnnualTarget: (companyId: string, target: AnnualTarget) => void;
@@ -53,13 +47,6 @@ interface TargetState {
 		actual: number
 	) => void;
 
-	// Actions - YTD 재계산
-	recalculateYTD: (
-		companyId: string,
-		year: number,
-		currentMonth: number
-	) => void;
-
 	// Getters
 	getAnnualTarget: (companyId: string, year: number) => AnnualTarget | null;
 	getQuarterlyProgress: (
@@ -71,22 +58,6 @@ interface TargetState {
 	// 초기화
 	reset: () => void;
 }
-
-// 기본 계절 가중치
-const defaultSeasonalWeights: SeasonalWeights = {
-	1: 1.3, // 1월 - 난방 (30% 증가)
-	2: 1.2, // 2월 - 난방
-	3: 1.1, // 3월 - 난방
-	4: 0.9, // 4월 - 봄
-	5: 0.9, // 5월 - 봄
-	6: 1.2, // 6월 - 냉방 시작
-	7: 1.4, // 7월 - 냉방 (40% 증가)
-	8: 1.4, // 8월 - 냉방 (40% 증가)
-	9: 1.1, // 9월 - 가을
-	10: 0.9, // 10월 - 가을
-	11: 1.2, // 11월 - 난방 시작
-	12: 1.3, // 12월 - 난방
-};
 
 /**
  * 목표 관리를 위한 전역 상태 스토어
@@ -103,63 +74,56 @@ export const useTargetStore = create<TargetState>()(
 				seasonalWeights: defaultSeasonalWeights,
 
 				setSeasonalWeights: (weights) => {
-					// 입력 검증 및 정규화 적용
-					if (!validateSeasonalWeights(weights)) {
+					// 간단한 검증: 모든 월(1-12)에 대해 가중치가 양수인지 확인
+					const isValid =
+						Object.keys(weights).length === 12 &&
+						Object.values(weights).every((w) => typeof w === "number" && w > 0);
+
+					if (!isValid) {
 						console.warn(
 							"Invalid seasonal weights provided, using default weights"
 						);
 						return;
 					}
-					const normalizedWeights = normalizeSeasonalWeights(weights);
-					set({ seasonalWeights: normalizedWeights as SeasonalWeights });
+
+					set({ seasonalWeights: weights });
 				},
 
-				setAnnualTarget: (companyId, year, totalBudget, method) => {
-					const state = get();
+				// 	//나중에 서버랑 연결하면 사용
+				// 	// const newAnnualTarget: AnnualTarget = {
+				// 	// 	year,
+				// 	// 	totalBudget,
+				// 	// 	allocationMethod: method,
+				// 	// 	quarterlyTargets,
+				// 	// 	monthlyEmissions,
+				// 	// 	ytdActual: 0,
+				// 	// 	ytdBudget: 0,
+				// 	// 	ytdVariance: 0,
+				// 	// };
 
-					// 분기별 목표 자동 배분
-					const quarterlyTargets =
-						method === "seasonal"
-							? allocateSeasonalByWeights(totalBudget, state.seasonalWeights)
-							: allocateProRata(totalBudget);
-
-					// 월별 예산 배분
-					const monthlyEmissions = allocateMonthlyBudgetsFromQuarters(
-						quarterlyTargets,
-						year
-					);
-
-					const newAnnualTarget: AnnualTarget = {
-						year,
-						totalBudget,
-						allocationMethod: method,
-						quarterlyTargets,
-						monthlyEmissions,
-						ytdActual: 0,
-						ytdBudget: 0,
-						ytdVariance: 0,
-					};
-
-					set(upsertCompanyTarget(state, companyId, newAnnualTarget));
-				},
+				// 	// set(upsertCompanyTarget(state, companyId, newAnnualTarget));
+				// },
 
 				loadAnnualTarget: (companyId, target) => {
 					const state = get();
-
-					// 월별 실적 기반으로 분기별 실적 재계산
-					const quarterlyTargets = recalcQuarterlyTargets(
-						target.quarterlyTargets,
-						target.monthlyEmissions
-					);
-
-					// YTD 계산
 					const currentMonth = new Date().getMonth() + 1;
-					const ytd = calcYTD(target.monthlyEmissions, currentMonth);
+
+					// 간단한 YTD 계산 (인라인)
+					const ytd = target.monthlyEmissions
+						.filter((me) => me.month <= currentMonth)
+						.reduce(
+							(acc, me) => ({
+								actual: acc.actual + (me.actual || 0),
+								budget: acc.budget + (me.budget || 0),
+							}),
+							{ actual: 0, budget: 0 }
+						);
 
 					const loadedTarget: AnnualTarget = {
 						...target,
-						quarterlyTargets,
-						...ytd,
+						ytdActual: round1(ytd.actual),
+						ytdBudget: round1(ytd.budget),
+						ytdVariance: round1(ytd.actual - ytd.budget),
 					};
 
 					set(upsertCompanyTarget(state, companyId, loadedTarget));
@@ -240,40 +204,24 @@ export const useTargetStore = create<TargetState>()(
 						actual,
 					};
 
-					// 분기별 실적 재계산
-					const quarterlyTargets = recalcQuarterlyTargets(
-						annualTarget.quarterlyTargets,
-						monthlyEmissions
-					);
-
-					// YTD 재계산
+					// 간단한 YTD 재계산 (인라인)
 					const currentMonth = new Date().getMonth() + 1;
-					const ytd = calcYTD(monthlyEmissions, currentMonth);
+					const ytd = monthlyEmissions
+						.filter((me) => me.month <= currentMonth)
+						.reduce(
+							(acc, me) => ({
+								actual: acc.actual + (me.actual || 0),
+								budget: acc.budget + (me.budget || 0),
+							}),
+							{ actual: 0, budget: 0 }
+						);
 
 					const updatedTarget: AnnualTarget = {
 						...annualTarget,
-						quarterlyTargets,
 						monthlyEmissions,
-						...ytd,
-					};
-
-					set(upsertCompanyTarget(state, companyId, updatedTarget));
-				},
-
-				recalculateYTD: (companyId, year, currentMonth) => {
-					const state = get();
-					const companyTarget = state.companyTargets[companyId];
-					if (!companyTarget) return;
-
-					const targetIndex = findTargetIndex(companyTarget, year);
-					if (targetIndex < 0) return;
-
-					const annualTarget = companyTarget.targets[targetIndex];
-					const ytd = calcYTD(annualTarget.monthlyEmissions, currentMonth);
-
-					const updatedTarget: AnnualTarget = {
-						...annualTarget,
-						...ytd,
+						ytdActual: round1(ytd.actual),
+						ytdBudget: round1(ytd.budget),
+						ytdVariance: round1(ytd.actual - ytd.budget),
 					};
 
 					set(upsertCompanyTarget(state, companyId, updatedTarget));

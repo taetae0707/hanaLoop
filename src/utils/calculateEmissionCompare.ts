@@ -46,13 +46,7 @@ function extractCategoryValue(
  * @param currentMonthValues - 현재 월 데이터
  * @param previousMonthValues - 전달 월 데이터
  * @returns EmissionCompareData | null - 증감 데이터 또는 null (비교 불가능한 경우)
- *
- * @example
- * const result = calculateEmissionCompare(
- *   { rawMaterialQuantity: 100 },
- *   { rawMaterialQuantity: 85 }
- * );
- * // { percent: 17.6, isIncrease: true, current: 100, previous: 85, absoluteChange: 15 }
+ 
  */
 export function calculateEmissionCompare(
 	currentMonthValues?: { [key: string]: string | number },

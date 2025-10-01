@@ -18,7 +18,7 @@ import {
 	getRiskLevelText,
 	getStatusColor,
 	getStatusText,
-} from "@/lib/supplier-utils";
+} from "@/utils/supplier-utils";
 import {
 	Filter,
 	AlertTriangle,

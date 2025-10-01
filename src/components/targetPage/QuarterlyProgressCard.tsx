@@ -8,14 +8,14 @@ import { QuarterlyTarget } from "@/types/target-types";
 
 interface QuarterlyProgressCardProps {
 	quarterlyTarget: QuarterlyTarget;
-	progressRate: number;
+	budgetUsageRate: number;
 	isOverBudget: boolean;
 	onUpdateBudget: (budget: number) => void;
 }
 
 export function QuarterlyProgressCard({
 	quarterlyTarget,
-	progressRate,
+	budgetUsageRate,
 	isOverBudget,
 	onUpdateBudget,
 }: QuarterlyProgressCardProps) {
@@ -32,20 +32,13 @@ export function QuarterlyProgressCard({
 		setIsEditing(false);
 	};
 
-	const getProgressColor = () => {
-		if (progressRate > 100) return "bg-red-500";
-		if (progressRate > 80) return "bg-yellow-500";
-		return "bg-green-500";
-	};
-
-	const getBorderColor = () => {
-		if (progressRate > 100) return "border-red-300";
-		if (progressRate > 80) return "border-yellow-300";
-		return "border-green-300";
+	const getUsageColor = () => {
+		if (budgetUsageRate > 100) return "bg-red-500"; // 예산 초과
+		return "bg-green-500"; // 예산 이하
 	};
 
 	return (
-		<Card className={`overflow-hidden border-2 ${getBorderColor()}`}>
+		<Card className="overflow-hidden border-2 border-gray-200">
 			<div className="px-4 py-3 bg-gray-50 border-b flex items-center justify-between">
 				<h4 className="font-medium text-gray-900">
 					Q{quarterlyTarget.quarter}
@@ -108,14 +101,14 @@ export function QuarterlyProgressCard({
 				</div>
 				<div>
 					<div className="flex justify-between text-xs text-gray-600 mb-1">
-						<span>진행률</span>
-						<span>{progressRate.toFixed(1)}%</span>
+						<span>예산 사용률</span>
+						<span>{budgetUsageRate.toFixed(1)}%</span>
 					</div>
 					<div className="w-full bg-gray-200 rounded-full h-2">
 						<div
-							className={`h-2 rounded-full transition-all duration-300 ${getProgressColor()}`}
+							className={`h-2 rounded-full transition-all duration-300 ${getUsageColor()}`}
 							style={{
-								width: `${Math.min(progressRate, 100)}%`,
+								width: `${Math.min(budgetUsageRate, 100)}%`,
 							}}></div>
 					</div>
 				</div>

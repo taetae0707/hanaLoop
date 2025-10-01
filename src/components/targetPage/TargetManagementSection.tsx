@@ -58,7 +58,7 @@ export function TargetManagementSection({
 						{q1Progress.quarterlyTarget && (
 							<QuarterlyProgressCard
 								quarterlyTarget={q1Progress.quarterlyTarget}
-								progressRate={q1Progress.progressRate}
+								budgetUsageRate={q1Progress.budgetUsageRate}
 								isOverBudget={q1Progress.isOverBudget}
 								onUpdateBudget={q1Progress.updateBudget}
 							/>
@@ -66,7 +66,7 @@ export function TargetManagementSection({
 						{q2Progress.quarterlyTarget && (
 							<QuarterlyProgressCard
 								quarterlyTarget={q2Progress.quarterlyTarget}
-								progressRate={q2Progress.progressRate}
+								budgetUsageRate={q2Progress.budgetUsageRate}
 								isOverBudget={q2Progress.isOverBudget}
 								onUpdateBudget={q2Progress.updateBudget}
 							/>
@@ -74,7 +74,7 @@ export function TargetManagementSection({
 						{q3Progress.quarterlyTarget && (
 							<QuarterlyProgressCard
 								quarterlyTarget={q3Progress.quarterlyTarget}
-								progressRate={q3Progress.progressRate}
+								budgetUsageRate={q3Progress.budgetUsageRate}
 								isOverBudget={q3Progress.isOverBudget}
 								onUpdateBudget={q3Progress.updateBudget}
 							/>
@@ -82,7 +82,7 @@ export function TargetManagementSection({
 						{q4Progress.quarterlyTarget && (
 							<QuarterlyProgressCard
 								quarterlyTarget={q4Progress.quarterlyTarget}
-								progressRate={q4Progress.progressRate}
+								budgetUsageRate={q4Progress.budgetUsageRate}
 								isOverBudget={q4Progress.isOverBudget}
 								onUpdateBudget={q4Progress.updateBudget}
 							/>

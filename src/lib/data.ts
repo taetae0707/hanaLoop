@@ -794,16 +794,16 @@ export const defaultSeasonalWeights: SeasonalWeights = {
 // 2025년 더미 연간 목표 (실제 배출량 목업 데이터 포함)
 export const dummyAnnualTarget: AnnualTarget = {
 	year: 2025,
-	totalBudget: 1200,
+	totalBudget: 1199.7,
 	allocationMethod: "seasonal",
 	quarterlyTargets: [
-		// Q1: 1-3월 (난방 시즌) - actual은 스토어에서 자동 계산
-		{ quarter: 1, budget: 310.8, actual: 0, remaining: 310.8 },
-		// Q2: 4-6월 (봄-초여름) - actual은 스토어에서 자동 계산
-		{ quarter: 2, budget: 259.2, actual: 0, remaining: 259.2 },
-		// Q3: 7-9월 (냉방 시즌) - actual은 스토어에서 자동 계산
-		{ quarter: 3, budget: 354.0, actual: 0, remaining: 354.0 },
-		// Q4: 10-12월 (가을-난방) - actual은 스토어에서 자동 계산
+		// Q1: 1-3월 (난방 시즌) - actual: 98.5+95.2+102.8=296.5, budget: 103.6+103.6+103.6=310.8
+		{ quarter: 1, budget: 310.8, actual: 296.5, remaining: 14.3 },
+		// Q2: 4-6월 (봄-초여름) - actual: 95.1+98.8+102.4=296.3, budget: 86.3+86.3+86.3=258.9
+		{ quarter: 2, budget: 258.9, actual: 296.3, remaining: -37.4 },
+		// Q3: 7-9월 (냉방 시즌) - actual: 90+91+92=273, budget: 112.2+112.2+129.6=354.0
+		{ quarter: 3, budget: 354.0, actual: 273, remaining: 81.0 },
+		// Q4: 10-12월 (가을-난방) - actual: 0+0+0=0, budget: 97.8+97.8+80.4=276.0
 		{ quarter: 4, budget: 276.0, actual: 0, remaining: 276.0 },
 	],
 	monthlyEmissions: [
@@ -812,9 +812,9 @@ export const dummyAnnualTarget: AnnualTarget = {
 		{ year: 2025, month: 2, actual: 95.2, budget: 103.6 },
 		{ year: 2025, month: 3, actual: 102.8, budget: 103.6 },
 		// Q2 - 봄/초여름 (4-5월: 0.9배, 6월: 1.2배 냉방 시작)
-		{ year: 2025, month: 4, actual: 82.1, budget: 86.3 },
-		{ year: 2025, month: 5, actual: 84.8, budget: 86.3 },
-		{ year: 2025, month: 6, actual: 88.4, budget: 86.3 },
+		{ year: 2025, month: 4, actual: 95.1, budget: 86.3 },
+		{ year: 2025, month: 5, actual: 98.8, budget: 86.3 },
+		{ year: 2025, month: 6, actual: 102.4, budget: 86.3 },
 		// Q3 - 냉방 시즌 (7-8월: 1.4배, 9월: 1.1배)
 		{ year: 2025, month: 7, actual: 90, budget: 112.2 },
 		{ year: 2025, month: 8, actual: 91, budget: 112.2 },
@@ -824,9 +824,9 @@ export const dummyAnnualTarget: AnnualTarget = {
 		{ year: 2025, month: 11, actual: 0, budget: 97.8 },
 		{ year: 2025, month: 12, actual: 0, budget: 80.4 },
 	],
-	ytdActual: 0,
-	ytdBudget: 0,
-	ytdVariance: 0,
+	ytdActual: 871.8,
+	ytdBudget: 923.7,
+	ytdVariance: 51.9,
 };
 
 // 회사별 목표 관리 더미 데이터

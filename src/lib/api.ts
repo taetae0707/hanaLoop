@@ -35,7 +35,6 @@ const _upstreamEmissionDetails = [...upstreamEmissionDetails];
 // 유틸리티 함수들
 const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 const jitter = () => 200 + Math.random() * 600;
-const maybeFail = () => Math.random() < 0.15;
 
 // 기본 API 함수들 (과제에서 제공된 것)
 export async function fetchCountries(): Promise<Country[]> {
@@ -57,7 +56,6 @@ export async function createOrUpdatePost(
 	p: Omit<Post, "id"> & { id?: string }
 ): Promise<Post> {
 	await delay(jitter());
-	if (maybeFail()) throw new Error("Save failed");
 
 	if (p.id) {
 		_posts = _posts.map((x) => (x.id === p.id ? (p as Post) : x));
@@ -207,13 +205,11 @@ export async function fetchEmissionsBySource(): Promise<EmissionBySource[]> {
 // 협력사 관련 API 함수들
 export async function fetchSuppliers(): Promise<Supplier[]> {
 	await delay(jitter());
-	if (maybeFail()) throw new Error("Failed to fetch suppliers");
 	return _suppliers;
 }
 
 export async function fetchSupplierById(id: string): Promise<Supplier | null> {
 	await delay(jitter());
-	if (maybeFail()) throw new Error("Failed to fetch supplier");
 	return _suppliers.find((s) => s.id === id) || null;
 }
 
@@ -221,7 +217,6 @@ export async function fetchSupplierEmissionDetails(
 	supplierId: string
 ): Promise<SupplierEmissionDetail[]> {
 	await delay(jitter());
-	if (maybeFail()) throw new Error("Failed to fetch supplier emission details");
 	return _supplierEmissionDetails.filter((d) => d.supplierId === supplierId);
 }
 
@@ -229,7 +224,6 @@ export async function fetchSupplierTarget(
 	supplierId: string
 ): Promise<SupplierTarget | null> {
 	await delay(jitter());
-	if (maybeFail()) throw new Error("Failed to fetch supplier target");
 	return _supplierTargets.find((t) => t.supplierId === supplierId) || null;
 }
 
@@ -238,7 +232,6 @@ export async function updateSupplierTarget(
 	target: Partial<SupplierTarget>
 ): Promise<SupplierTarget> {
 	await delay(jitter());
-	if (maybeFail()) throw new Error("Failed to update supplier target");
 
 	const index = _supplierTargets.findIndex((t) => t.supplierId === supplierId);
 	if (index === -1) throw new Error("Supplier target not found");
@@ -252,7 +245,6 @@ export async function fetchUpstreamEmissionDetails(
 	supplierId: string
 ): Promise<UpstreamEmissionDetails | null> {
 	await delay(jitter());
-	if (maybeFail()) throw new Error("Failed to fetch upstream emission details");
 
 	const details = _upstreamEmissionDetails.find(
 		(d) => d.supplierId === supplierId
