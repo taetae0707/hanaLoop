@@ -1,25 +1,35 @@
-import { QuarterlyTarget, SeasonalWeights } from "@/types/target-types";
+import {
+	QuarterlyTarget,
+	SeasonalWeights,
+	MonthlyEmission,
+} from "@/types/target-types";
 import { round1, rangeMonthsOfQuarter } from "./numberUtils";
 
 /**
  * 균등 분배 (pro-rata) - 단순히 연간 예산을 12개월로 균등하게 나눔
  * @param totalBudget 연간 총 예산
+ * @param quarters 분기 수 (기본값: 4)
  * @returns 분기별 목표 배열
  */
-export function allocateProRata(totalBudget: number): QuarterlyTarget[] {
+export function allocateProRata(
+	totalBudget: number,
+	quarters: number = 4
+): QuarterlyTarget[] {
 	// 월별 예산 = 연간 예산 / 12
 	const monthlyBudget = round1(totalBudget / 12);
 
 	// 분기별 예산 = 월별 예산 * 3
 	const quarterlyBudget = round1(monthlyBudget * 3);
 
-	// 4개 분기에 동일한 예산 할당
-	return [1, 2, 3, 4].map((q) => ({
-		quarter: q as 1 | 2 | 3 | 4,
-		budget: quarterlyBudget,
-		actual: 0,
-		remaining: quarterlyBudget,
-	}));
+	// 분기에 동일한 예산 할당
+	return Array(quarters)
+		.fill(null)
+		.map((_, i) => ({
+			quarter: (i + 1) as 1 | 2 | 3 | 4,
+			budget: quarterlyBudget,
+			actual: 0,
+			remaining: quarterlyBudget,
+		}));
 }
 
 /**
@@ -32,38 +42,22 @@ export function allocateSeasonalByWeights(
 	totalBudget: number,
 	weights: SeasonalWeights
 ): QuarterlyTarget[] {
-	// 1. 기본 월별 예산 계산 (연간 예산 / 12)
-	const baseMonthlyBudget = totalBudget / 12;
+	// Q1: 1-3월, Q2: 4-6월, Q3: 7-9월, Q4: 10-12월
+	const quarterWeights = [
+		[1, 2, 3], // Q1 (난방)
+		[4, 5, 6], // Q2
+		[7, 8, 9], // Q3 (냉방)
+		[10, 11, 12], // Q4 (난방)
+	].map((months) => months.reduce((sum, m) => sum + (weights[m] || 1), 0) / 3);
 
-	// 2. 월별 예산에 가중치 적용
-	const monthlyBudgets: Record<number, number> = {};
-	for (let month = 1; month <= 12; month++) {
-		const weight = weights[month] || 1; // 가중치가 없으면 기본값 1
-		monthlyBudgets[month] = round1(baseMonthlyBudget * weight);
-	}
+	const totalWeight = quarterWeights.reduce((a, b) => a + b, 0);
 
-	// 3. 분기별로 월별 예산 합산
-	const quarterlyTargets: QuarterlyTarget[] = [];
-	for (let quarter = 1; quarter <= 4; quarter++) {
-		const { start, end } = rangeMonthsOfQuarter(quarter as 1 | 2 | 3 | 4);
-
-		// 해당 분기의 3개월 예산 합산
-		let quarterlyBudget = 0;
-		for (let month = start; month <= end; month++) {
-			quarterlyBudget += monthlyBudgets[month];
-		}
-
-		quarterlyBudget = round1(quarterlyBudget);
-
-		quarterlyTargets.push({
-			quarter: quarter as 1 | 2 | 3 | 4,
-			budget: quarterlyBudget,
-			actual: 0,
-			remaining: quarterlyBudget,
-		});
-	}
-
-	return quarterlyTargets;
+	return quarterWeights.map((weight, i) => ({
+		quarter: (i + 1) as 1 | 2 | 3 | 4,
+		budget: round1((totalBudget * weight) / totalWeight),
+		actual: 0,
+		remaining: round1((totalBudget * weight) / totalWeight),
+	}));
 }
 
 /**
@@ -75,21 +69,21 @@ export function allocateSeasonalByWeights(
 export function allocateMonthlyBudgetsFromQuarters(
 	quarterlyTargets: QuarterlyTarget[],
 	year: number
-): { year: number; month: number; budget: number; actual: number }[] {
-	const monthlyEmissions = [];
+): MonthlyEmission[] {
+	const monthlyEmissions: MonthlyEmission[] = [];
 
 	for (const qt of quarterlyTargets) {
 		// 분기별 예산을 3개월에 균등 분배
 		const monthlyBudget = round1(qt.budget / 3);
 
 		// 해당 분기의 월 범위
-		const { start, end } = rangeMonthsOfQuarter(qt.quarter);
+		const startMonth = (qt.quarter - 1) * 3 + 1;
 
 		// 각 월에 대한 데이터 생성
-		for (let month = start; month <= end; month++) {
+		for (let i = 0; i < 3; i++) {
 			monthlyEmissions.push({
 				year,
-				month,
+				month: startMonth + i,
 				budget: monthlyBudget,
 				actual: 0, // 초기값은 0
 			});
