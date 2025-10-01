@@ -11,7 +11,6 @@ interface EmissionRowProps {
 	title: string;
 	currentMonthData: React.ReactNode;
 	previousMonthData?: React.ReactNode;
-	targetEmission?: number;
 	currentMonthValues?: { [key: string]: string | number };
 	previousMonthValues?: { [key: string]: string | number };
 }
@@ -23,7 +22,6 @@ export function EmissionRow({
 	title,
 	currentMonthData,
 	previousMonthData,
-	targetEmission,
 	currentMonthValues,
 	previousMonthValues,
 }: EmissionRowProps) {
@@ -97,17 +95,6 @@ export function EmissionRow({
 						</div>
 					) : (
 						<div className="text-gray-400 text-sm">비교 불가</div>
-					)}
-				</div>
-			</td>
-			<td className="px-6 py-4">
-				<div className="text-sm text-gray-900">
-					{targetEmission !== undefined ? (
-						<div className="text-sm font-semibold text-gray-900">
-							{targetEmission.toFixed(1)} tCO2e
-						</div>
-					) : (
-						<div className="text-gray-400 text-sm">목표 없음</div>
 					)}
 				</div>
 			</td>

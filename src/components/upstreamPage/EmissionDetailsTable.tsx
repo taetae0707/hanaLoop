@@ -19,8 +19,7 @@ interface EmissionDetailsTableProps {
 export function EmissionDetailsTable({
 	emissionDetails,
 }: EmissionDetailsTableProps) {
-	const { purchasedProducts, transportation, energy, waste, targets } =
-		emissionDetails;
+	const { purchasedProducts, transportation, energy, waste } = emissionDetails;
 
 	// 현재 월과 전달 월 계산
 	const getCurrentMonth = () => {
@@ -92,9 +91,6 @@ export function EmissionDetailsTable({
 							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 								배출량 증감
 							</th>
-							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-								목표 배출량
-							</th>
 						</tr>
 					</thead>
 					<tbody className="bg-white divide-y divide-gray-200">
@@ -112,7 +108,6 @@ export function EmissionDetailsTable({
 									data={dummyPreviousMonthData.purchasedProducts}
 								/>
 							}
-							targetEmission={targets?.purchasedProducts}
 							currentMonthValues={
 								purchasedProducts as unknown as Record<string, string | number>
 							}
@@ -136,7 +131,6 @@ export function EmissionDetailsTable({
 									data={dummyPreviousMonthData.transportation}
 								/>
 							}
-							targetEmission={targets?.transportation}
 							currentMonthValues={
 								transportation as unknown as Record<string, string | number>
 							}
@@ -158,7 +152,6 @@ export function EmissionDetailsTable({
 							previousMonthData={
 								<EnergyData data={dummyPreviousMonthData.energy} />
 							}
-							targetEmission={targets?.energy}
 							currentMonthValues={
 								energy as unknown as Record<string, string | number>
 							}
@@ -180,7 +173,6 @@ export function EmissionDetailsTable({
 							previousMonthData={
 								<WasteData data={dummyPreviousMonthData.waste} />
 							}
-							targetEmission={targets?.waste}
 							currentMonthValues={
 								waste[0] as unknown as Record<string, string | number>
 							} // 첫 번째 폐기물 항목 사용
@@ -197,9 +189,6 @@ export function EmissionDetailsTable({
 			<div className="px-6 py-3 bg-gray-50 border-t">
 				<div className="flex justify-between items-center text-sm text-gray-600">
 					<span>마지막 업데이트: {emissionDetails.lastUpdated}</span>
-					<span className="font-semibold text-gray-900">
-						총 배출량: {emissionDetails.totalEmissions.toFixed(1)} tCO2e
-					</span>
 				</div>
 			</div>
 		</Card>
