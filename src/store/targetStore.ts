@@ -7,11 +7,16 @@ import {
 	AllocationMethod,
 	QuarterlyTarget,
 } from "@/types/target-types";
+import { round1 } from "@/utils/numberUtils";
 import {
-	allocateSeasonal,
-	allocateMonthlyBudgets,
-} from "@/utils/targetAllocation";
-import { calculateYTD } from "@/utils/ytdCalculation";
+	allocateProRata,
+	allocateSeasonalByWeights,
+	allocateMonthlyBudgetsFromQuarters,
+	validateSeasonalWeights,
+	normalizeSeasonalWeights,
+} from "@/utils/allocationService";
+import { recalcQuarterlyTargets, calcYTD } from "@/utils/aggregationService";
+import { upsertCompanyTarget, findTargetIndex } from "@/utils/storeUtils";
 
 interface TargetState {
 	// State
@@ -98,33 +103,28 @@ export const useTargetStore = create<TargetState>()(
 				seasonalWeights: defaultSeasonalWeights,
 
 				setSeasonalWeights: (weights) => {
-					set({ seasonalWeights: weights });
+					// 입력 검증 및 정규화 적용
+					if (!validateSeasonalWeights(weights)) {
+						console.warn(
+							"Invalid seasonal weights provided, using default weights"
+						);
+						return;
+					}
+					const normalizedWeights = normalizeSeasonalWeights(weights);
+					set({ seasonalWeights: normalizedWeights as SeasonalWeights });
 				},
 
 				setAnnualTarget: (companyId, year, totalBudget, method) => {
 					const state = get();
-					const companyTarget = state.companyTargets[companyId];
 
 					// 분기별 목표 자동 배분
-					let quarterlyTargets: QuarterlyTarget[];
-					if (method === "seasonal") {
-						quarterlyTargets = allocateSeasonal(
-							totalBudget,
-							state.seasonalWeights
-						);
-					} else {
-						// pro-rata
-						const quarterBudget = Math.round((totalBudget / 4) * 10) / 10;
-						quarterlyTargets = [1, 2, 3, 4].map((q) => ({
-							quarter: q as 1 | 2 | 3 | 4,
-							budget: quarterBudget,
-							actual: 0,
-							remaining: quarterBudget,
-						}));
-					}
+					const quarterlyTargets =
+						method === "seasonal"
+							? allocateSeasonalByWeights(totalBudget, state.seasonalWeights)
+							: allocateProRata(totalBudget);
 
 					// 월별 예산 배분
-					const monthlyEmissions = allocateMonthlyBudgets(
+					const monthlyEmissions = allocateMonthlyBudgetsFromQuarters(
 						quarterlyTargets,
 						year
 					);
@@ -140,66 +140,21 @@ export const useTargetStore = create<TargetState>()(
 						ytdVariance: 0,
 					};
 
-					if (companyTarget) {
-						// 기존 회사의 목표 업데이트
-						const existingTargetIndex = companyTarget.targets.findIndex(
-							(t) => t.year === year
-						);
-						const updatedTargets = [...companyTarget.targets];
-
-						if (existingTargetIndex >= 0) {
-							updatedTargets[existingTargetIndex] = newAnnualTarget;
-						} else {
-							updatedTargets.push(newAnnualTarget);
-						}
-
-						set({
-							companyTargets: {
-								...state.companyTargets,
-								[companyId]: {
-									...companyTarget,
-									targets: updatedTargets,
-								},
-							},
-						});
-					} else {
-						// 새로운 회사 추가
-						set({
-							companyTargets: {
-								...state.companyTargets,
-								[companyId]: {
-									companyId,
-									companyName: companyId, // 실제로는 API에서 가져와야 함
-									targets: [newAnnualTarget],
-									currentYear: year,
-								},
-							},
-						});
-					}
+					set(upsertCompanyTarget(state, companyId, newAnnualTarget));
 				},
 
 				loadAnnualTarget: (companyId, target) => {
 					const state = get();
-					const companyTarget = state.companyTargets[companyId];
 
 					// 월별 실적 기반으로 분기별 실적 재계산
-					const quarterlyTargets = target.quarterlyTargets.map((qt) => {
-						const startMonth = (qt.quarter - 1) * 3 + 1;
-						const endMonth = startMonth + 2;
-						const quarterActual = target.monthlyEmissions
-							.filter((me) => me.month >= startMonth && me.month <= endMonth)
-							.reduce((sum, me) => sum + me.actual, 0);
-
-						return {
-							...qt,
-							actual: Math.round(quarterActual * 10) / 10,
-							remaining: Math.round((qt.budget - quarterActual) * 10) / 10,
-						};
-					});
+					const quarterlyTargets = recalcQuarterlyTargets(
+						target.quarterlyTargets,
+						target.monthlyEmissions
+					);
 
 					// YTD 계산
 					const currentMonth = new Date().getMonth() + 1;
-					const ytd = calculateYTD(target.monthlyEmissions, currentMonth);
+					const ytd = calcYTD(target.monthlyEmissions, currentMonth);
 
 					const loadedTarget: AnnualTarget = {
 						...target,
@@ -207,42 +162,7 @@ export const useTargetStore = create<TargetState>()(
 						...ytd,
 					};
 
-					if (companyTarget) {
-						// 기존 회사의 목표 업데이트
-						const existingTargetIndex = companyTarget.targets.findIndex(
-							(t) => t.year === target.year
-						);
-						const updatedTargets = [...companyTarget.targets];
-
-						if (existingTargetIndex >= 0) {
-							updatedTargets[existingTargetIndex] = loadedTarget;
-						} else {
-							updatedTargets.push(loadedTarget);
-						}
-
-						set({
-							companyTargets: {
-								...state.companyTargets,
-								[companyId]: {
-									...companyTarget,
-									targets: updatedTargets,
-								},
-							},
-						});
-					} else {
-						// 새로운 회사 추가
-						set({
-							companyTargets: {
-								...state.companyTargets,
-								[companyId]: {
-									companyId,
-									companyName: companyId,
-									targets: [loadedTarget],
-									currentYear: target.year,
-								},
-							},
-						});
-					}
+					set(upsertCompanyTarget(state, companyId, loadedTarget));
 				},
 
 				updateQuarterlyTarget: (companyId, year, quarter, budget) => {
@@ -250,9 +170,7 @@ export const useTargetStore = create<TargetState>()(
 					const companyTarget = state.companyTargets[companyId];
 					if (!companyTarget) return;
 
-					const targetIndex = companyTarget.targets.findIndex(
-						(t) => t.year === year
-					);
+					const targetIndex = findTargetIndex(companyTarget, year);
 					if (targetIndex < 0) return;
 
 					const annualTarget = companyTarget.targets[targetIndex];
@@ -267,11 +185,11 @@ export const useTargetStore = create<TargetState>()(
 					quarterlyTargets[quarterIndex] = {
 						...quarterlyTargets[quarterIndex],
 						budget,
-						remaining: budget - quarterlyTargets[quarterIndex].actual,
+						remaining: round1(budget - quarterlyTargets[quarterIndex].actual),
 					};
 
 					// 월별 예산 재계산
-					const monthlyEmissions = allocateMonthlyBudgets(
+					const monthlyEmissions = allocateMonthlyBudgetsFromQuarters(
 						quarterlyTargets,
 						year
 					);
@@ -290,23 +208,14 @@ export const useTargetStore = create<TargetState>()(
 						0
 					);
 
-					const updatedTargets = [...companyTarget.targets];
-					updatedTargets[targetIndex] = {
+					const updatedTarget: AnnualTarget = {
 						...annualTarget,
-						totalBudget: Math.round(newTotalBudget * 10) / 10,
+						totalBudget: round1(newTotalBudget),
 						quarterlyTargets,
 						monthlyEmissions: updatedMonthlyEmissions,
 					};
 
-					set({
-						companyTargets: {
-							...state.companyTargets,
-							[companyId]: {
-								...companyTarget,
-								targets: updatedTargets,
-							},
-						},
-					});
+					set(upsertCompanyTarget(state, companyId, updatedTarget));
 				},
 
 				recordMonthlyEmission: (companyId, year, month, actual) => {
@@ -314,9 +223,7 @@ export const useTargetStore = create<TargetState>()(
 					const companyTarget = state.companyTargets[companyId];
 					if (!companyTarget) return;
 
-					const targetIndex = companyTarget.targets.findIndex(
-						(t) => t.year === year
-					);
+					const targetIndex = findTargetIndex(companyTarget, year);
 					if (targetIndex < 0) return;
 
 					const annualTarget = companyTarget.targets[targetIndex];
@@ -334,42 +241,23 @@ export const useTargetStore = create<TargetState>()(
 					};
 
 					// 분기별 실적 재계산
-					const quarterlyTargets = [...annualTarget.quarterlyTargets];
-					quarterlyTargets.forEach((qt, i) => {
-						const startMonth = (qt.quarter - 1) * 3 + 1;
-						const endMonth = startMonth + 2;
-						const quarterActual = monthlyEmissions
-							.filter((me) => me.month >= startMonth && me.month <= endMonth)
-							.reduce((sum, me) => sum + me.actual, 0);
-
-						quarterlyTargets[i] = {
-							...qt,
-							actual: Math.round(quarterActual * 10) / 10,
-							remaining: Math.round((qt.budget - quarterActual) * 10) / 10,
-						};
-					});
+					const quarterlyTargets = recalcQuarterlyTargets(
+						annualTarget.quarterlyTargets,
+						monthlyEmissions
+					);
 
 					// YTD 재계산
 					const currentMonth = new Date().getMonth() + 1;
-					const ytd = calculateYTD(monthlyEmissions, currentMonth);
+					const ytd = calcYTD(monthlyEmissions, currentMonth);
 
-					const updatedTargets = [...companyTarget.targets];
-					updatedTargets[targetIndex] = {
+					const updatedTarget: AnnualTarget = {
 						...annualTarget,
 						quarterlyTargets,
 						monthlyEmissions,
 						...ytd,
 					};
 
-					set({
-						companyTargets: {
-							...state.companyTargets,
-							[companyId]: {
-								...companyTarget,
-								targets: updatedTargets,
-							},
-						},
-					});
+					set(upsertCompanyTarget(state, companyId, updatedTarget));
 				},
 
 				recalculateYTD: (companyId, year, currentMonth) => {
@@ -377,29 +265,18 @@ export const useTargetStore = create<TargetState>()(
 					const companyTarget = state.companyTargets[companyId];
 					if (!companyTarget) return;
 
-					const targetIndex = companyTarget.targets.findIndex(
-						(t) => t.year === year
-					);
+					const targetIndex = findTargetIndex(companyTarget, year);
 					if (targetIndex < 0) return;
 
 					const annualTarget = companyTarget.targets[targetIndex];
-					const ytd = calculateYTD(annualTarget.monthlyEmissions, currentMonth);
+					const ytd = calcYTD(annualTarget.monthlyEmissions, currentMonth);
 
-					const updatedTargets = [...companyTarget.targets];
-					updatedTargets[targetIndex] = {
+					const updatedTarget: AnnualTarget = {
 						...annualTarget,
 						...ytd,
 					};
 
-					set({
-						companyTargets: {
-							...state.companyTargets,
-							[companyId]: {
-								...companyTarget,
-								targets: updatedTargets,
-							},
-						},
-					});
+					set(upsertCompanyTarget(state, companyId, updatedTarget));
 				},
 
 				getAnnualTarget: (companyId, year) => {
