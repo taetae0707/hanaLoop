@@ -35,8 +35,9 @@ export function QuarterlyProgressCard({
 	};
 
 	const getUsageColor = () => {
-		if (budgetUsageRate > 100) return "bg-red-500"; // 예산 초과
-		return "bg-green-500"; // 예산 이하
+		if (budgetUsageRate >= 100) return "bg-red-500"; // 100% 이상
+		if (budgetUsageRate >= 90) return "bg-yellow-500"; // 90% 이상
+		return "bg-green-500"; // 90% 미만
 	};
 
 	return (
@@ -95,16 +96,25 @@ export function QuarterlyProgressCard({
 					<p className="text-xs text-gray-500">남은 예산</p>
 					<p
 						className={`text-lg font-semibold ${
-							isOverBudget ? "text-red-600" : "text-green-600"
+							remaining < 0 ? "text-red-600" : "text-green-600"
 						}`}>
-						{isOverBudget && "+"}
-						{Math.abs(remaining).toFixed(1)} tCO₂e
+						{remaining >= 0 && "+"}
+						{remaining.toFixed(1)} tCO₂e
 					</p>
 				</div>
 				<div>
 					<div className="flex justify-between text-xs text-gray-600 mb-1">
 						<span>예산 사용률</span>
-						<span>{budgetUsageRate.toFixed(1)}%</span>
+						<span
+							className={`font-medium ${
+								budgetUsageRate >= 100
+									? "text-red-600"
+									: budgetUsageRate >= 90
+									? "text-yellow-600"
+									: "text-gray-600"
+							}`}>
+							{budgetUsageRate.toFixed(1)}%
+						</span>
 					</div>
 					<div className="w-full bg-gray-200 rounded-full h-2">
 						<div

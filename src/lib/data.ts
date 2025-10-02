@@ -801,8 +801,8 @@ export const dummyAnnualTarget: AnnualTarget = {
 		{ quarter: 1, budget: 0, actual: 296.5, remaining: 0 },
 		// Q2: 4-6월 (봄-초여름) - actual: 95.1+98.8+102.4=296.3, budget: 86.3+86.3+86.3=258.9
 		{ quarter: 2, budget: 0, actual: 296.3, remaining: 0 },
-		// Q3: 7-9월 (냉방 시즌) - actual: 90+91+92=273, budget: 112.2+112.2+129.6=354.0
-		{ quarter: 3, budget: 0, actual: 273, remaining: 0 },
+		// Q3: 7-9월 (냉방 시즌) - actual: 133+133+134=400, budget: 112.2+112.2+129.6=354.0
+		{ quarter: 3, budget: 0, actual: 400, remaining: 0 },
 		// Q4: 10-12월 (가을-난방) - actual: 0+0+0=0, budget: 97.8+97.8+80.4=276.0
 		{ quarter: 4, budget: 0, actual: 0, remaining: 0 },
 	],
@@ -816,15 +816,15 @@ export const dummyAnnualTarget: AnnualTarget = {
 		{ year: 2025, month: 5, actual: 98.8, budget: 0 },
 		{ year: 2025, month: 6, actual: 102.4, budget: 0 },
 		// Q3 - 냉방 시즌 (7-8월: 1.4배, 9월: 1.1배)
-		{ year: 2025, month: 7, actual: 90, budget: 0 },
-		{ year: 2025, month: 8, actual: 91, budget: 0 },
-		{ year: 2025, month: 9, actual: 92, budget: 0 },
+		{ year: 2025, month: 7, actual: 133, budget: 0 },
+		{ year: 2025, month: 8, actual: 133, budget: 0 },
+		{ year: 2025, month: 9, actual: 134, budget: 0 },
 		// Q4 - 가을/난방 (10월: 0.9배, 11월: 1.2배, 12월: 1.3배)
 		{ year: 2025, month: 10, actual: 0, budget: 0 },
 		{ year: 2025, month: 11, actual: 0, budget: 0 },
 		{ year: 2025, month: 12, actual: 0, budget: 0 },
 	],
-	ytdActual: 865.8,
+	ytdActual: 992.8,
 	ytdBudget: 0,
 	ytdVariance: 0,
 };
