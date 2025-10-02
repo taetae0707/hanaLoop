@@ -33,7 +33,14 @@ import { useEmissionStore } from "@/store/emissionStore";
 import { useTargetStore } from "@/store/targetStore";
 import { useAnnualTarget } from "@/hooks/useAnnualTarget";
 import { useMonthlyEmission } from "@/hooks/useMonthlyEmission";
-import { dummyAnnualTarget } from "@/lib/data";
+import { useBudgetAllocation } from "@/hooks/useBudgetAllocation";
+import { dummyAnnualTarget, defaultSeasonalWeights } from "@/lib/data";
+import {
+	getAllocationMethodText,
+	getAllocationMethodDescription,
+	calculateRemainingBudget,
+} from "@/utils/targetCalculations";
+import { MonthlyEmission, QuarterlyTarget } from "@/types/target-types";
 
 export default function SupplierTargetManagement() {
 	const params = useParams();
@@ -48,7 +55,6 @@ export default function SupplierTargetManagement() {
 	// 목표 관리 Hooks
 	const {
 		annualTarget,
-		setTarget: setAnnualTarget,
 		ytd,
 		achievementRate: ytdAchievementRate,
 	} = useAnnualTarget(supplierId, year);
@@ -57,11 +63,50 @@ export default function SupplierTargetManagement() {
 		year
 	);
 
-	// 계절 가중치를 적용한 분기 목표 (useMemo로 관리)
-	const seasonalQuarterlyTargets = useMemo(() => {
-		if (!annualTarget) return null;
-		return annualTarget.quarterlyTargets;
-	}, [annualTarget]);
+	// 가중치 계산된 예산 데이터 가져오기 (수정된 훅 사용)
+	const { data: budgetAllocationData } = useBudgetAllocation({
+		companyId: supplierId,
+		totalBudget: annualTarget?.totalBudget || 0,
+		weights: defaultSeasonalWeights,
+		year: year,
+		ytdActual: annualTarget?.ytdActual || 0,
+	});
+
+	// 가중치 계산된 월별 데이터와 실제 데이터 합치기 (useMemo로 관리)
+	const mergedMonthlyEmissions = useMemo(() => {
+		if (!annualTarget || !budgetAllocationData) return monthlyEmissions;
+
+		// 계산된 예산 데이터와 더미 데이터의 실제 값을 합침
+		return budgetAllocationData.monthlyBudgets.map(
+			(budgetItem: MonthlyEmission) => {
+				const actualItem = annualTarget.monthlyEmissions.find(
+					(actual) => actual.month === budgetItem.month
+				);
+				return {
+					...budgetItem,
+					actual: actualItem?.actual || 0, // 더미 데이터의 실제 값 사용
+				};
+			}
+		);
+	}, [annualTarget, budgetAllocationData, monthlyEmissions]);
+
+	// 가중치 계산된 분기 목표와 실제 데이터 합치기 (useMemo로 관리)
+	const mergedQuarterlyTargets = useMemo(() => {
+		if (!annualTarget || !budgetAllocationData)
+			return annualTarget?.quarterlyTargets || null;
+
+		return budgetAllocationData.quarterlyTargets.map(
+			(budgetItem: QuarterlyTarget) => {
+				const actualItem = annualTarget.quarterlyTargets.find(
+					(actual) => actual.quarter === budgetItem.quarter
+				);
+				return {
+					...budgetItem,
+					actual: actualItem?.actual || 0, // 더미 데이터의 실제 값 사용
+				};
+			}
+		);
+	}, [annualTarget, budgetAllocationData]);
 
 	const [supplier, setSupplier] = useState<Supplier | null>(null);
 	const [supplierTarget, setSupplierTarget] = useState<SupplierTarget | null>(
@@ -140,6 +185,56 @@ export default function SupplierTargetManagement() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [supplierId]);
 
+	// 월별 가중치 계산값 콘솔 출력 (테스트용)
+	useEffect(() => {
+		if (annualTarget && budgetAllocationData && supplierId) {
+			console.log("=== 월별 가중치 계산 테스트 ===");
+			console.log("협력사 ID:", supplierId);
+			console.log("기본 계절 가중치:", defaultSeasonalWeights);
+			console.log("원본 연간 목표:", annualTarget);
+			console.log("가중치 계산된 예산 데이터:", budgetAllocationData);
+
+			// 합쳐진 월별 데이터 출력
+			if (mergedMonthlyEmissions) {
+				console.log("합쳐진 월별 데이터 (가중치 예산 + 더미 실제값):");
+				mergedMonthlyEmissions.forEach((monthly: MonthlyEmission) => {
+					const weight = defaultSeasonalWeights[monthly.month] || 1;
+					console.log(
+						`${
+							monthly.month
+						}월: 가중치(${weight}) → 예산 ${monthly.budget.toFixed(
+							2
+						)} tCO2e, 실적 ${monthly.actual.toFixed(2)} tCO2e`
+					);
+				});
+			}
+
+			// 합쳐진 분기별 목표도 출력
+			if (mergedQuarterlyTargets) {
+				console.log("합쳐진 분기별 목표:");
+				mergedQuarterlyTargets.forEach((quarterly: QuarterlyTarget) => {
+					console.log(
+						`Q${quarterly.quarter}: 예산 ${quarterly.budget.toFixed(
+							2
+						)} tCO2e, 실적 ${quarterly.actual.toFixed(2)} tCO2e`
+					);
+				});
+			}
+
+			console.log("YTD 정보:");
+			console.log(`- YTD 예산: ${annualTarget.ytdBudget.toFixed(2)} tCO2e`);
+			console.log(`- YTD 실적: ${annualTarget.ytdActual.toFixed(2)} tCO2e`);
+			console.log(`- YTD 분산: ${annualTarget.ytdVariance.toFixed(2)} tCO2e`);
+			console.log("================================");
+		}
+	}, [
+		annualTarget,
+		budgetAllocationData,
+		supplierId,
+		mergedMonthlyEmissions,
+		mergedQuarterlyTargets,
+	]);
+
 	// YTD는 loadAnnualTarget에서 자동으로 계산되므로 별도 처리 불필요
 
 	const handleRecordEmission = (month: number, actual: number) => {
@@ -204,17 +299,27 @@ export default function SupplierTargetManagement() {
 				/>
 
 				{/* 미니 대쉬보드 */}
-				<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-					<StatCard
-						icon={<BarChart3 className="h-8 w-8 text-blue-600" />}
-						label="현재 총배출량"
-						value={`${supplier.totalEmissions.toFixed(1)} tCO2e`}
-					/>
+				<div className="grid grid-cols-1 md:grid-cols-5 gap-4">
 					<StatCard
 						icon={<Target className="h-8 w-8 text-purple-600" />}
 						label="목표 배출량"
 						value={`${supplierTarget.totalTargetEmissions.toFixed(1)} tCO2e`}
 					/>
+					<StatCard
+						icon={<BarChart3 className="h-8 w-8 text-blue-600" />}
+						label="현재 총배출량"
+						value={`${supplier.totalEmissions.toFixed(1)} tCO2e`}
+					/>
+					{annualTarget && ytd && (
+						<StatCard
+							icon={<BarChart3 className="h-8 w-8 text-orange-600" />}
+							label="남은 예산"
+							value={`${calculateRemainingBudget(
+								annualTarget.totalBudget,
+								ytd.actual
+							).toFixed(1)} tCO2e`}
+						/>
+					)}
 					<StatCard
 						icon={
 							isOverTarget ? (
@@ -226,6 +331,16 @@ export default function SupplierTargetManagement() {
 						label="달성률"
 						value={`${supplierAchievementRate.toFixed(1)}%`}
 					/>
+					{annualTarget && (
+						<StatCard
+							icon={<Target className="h-8 w-8 text-green-600" />}
+							label="배분방식"
+							value={getAllocationMethodText(annualTarget.allocationMethod)}
+							description={getAllocationMethodDescription(
+								annualTarget.allocationMethod
+							)}
+						/>
+					)}
 				</div>
 
 				{/* 총 배출량 근거 자료 */}
@@ -240,27 +355,22 @@ export default function SupplierTargetManagement() {
 						<TargetManagementSection
 							companyId={supplierId}
 							year={year}
-							annualTarget={annualTarget}
-							ytdActual={ytd.actual}
-							ytdBudget={ytd.budget}
-							ytdVariance={ytd.variance}
-							achievementRate={ytdAchievementRate}
-							currentMonth={currentMonth}
+							mergedQuarterlyTargets={mergedQuarterlyTargets || undefined}
 						/>
 
 						{/* 차트 섹션 */}
 						<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-							<AnnualTrendChart monthlyEmissions={monthlyEmissions} />
-							{seasonalQuarterlyTargets && (
+							<AnnualTrendChart monthlyEmissions={mergedMonthlyEmissions} />
+							{mergedQuarterlyTargets && (
 								<QuarterlyComparisonChart
-									quarterlyTargets={seasonalQuarterlyTargets}
+									quarterlyTargets={mergedQuarterlyTargets}
 								/>
 							)}
 						</div>
 
 						{/* 월별 배출 실적 테이블 */}
 						<MonthlyEmissionTable
-							monthlyEmissions={monthlyEmissions}
+							monthlyEmissions={mergedMonthlyEmissions}
 							onRecordEmission={handleRecordEmission}
 						/>
 					</>

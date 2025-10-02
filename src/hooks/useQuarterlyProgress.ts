@@ -24,6 +24,11 @@ export function useQuarterlyProgress(
 		return quarterlyTarget.actual > quarterlyTarget.budget;
 	}, [quarterlyTarget]);
 
+	const remaining = useMemo(() => {
+		if (!quarterlyTarget) return 0;
+		return quarterlyTarget.budget - quarterlyTarget.actual; // 올바른 남은 예산 계산
+	}, [quarterlyTarget]);
+
 	const updateBudget = (budget: number) => {
 		store.updateQuarterlyTarget(companyId, year, quarter, budget);
 	};
@@ -32,6 +37,7 @@ export function useQuarterlyProgress(
 		quarterlyTarget,
 		budgetUsageRate,
 		isOverBudget,
+		remaining,
 		updateBudget,
 	};
 }

@@ -10,6 +10,7 @@ interface QuarterlyProgressCardProps {
 	quarterlyTarget: QuarterlyTarget;
 	budgetUsageRate: number;
 	isOverBudget: boolean;
+	remaining: number;
 	onUpdateBudget: (budget: number) => void;
 }
 
@@ -17,6 +18,7 @@ export function QuarterlyProgressCard({
 	quarterlyTarget,
 	budgetUsageRate,
 	isOverBudget,
+	remaining,
 	onUpdateBudget,
 }: QuarterlyProgressCardProps) {
 	const [isEditing, setIsEditing] = useState(false);
@@ -96,7 +98,7 @@ export function QuarterlyProgressCard({
 							isOverBudget ? "text-red-600" : "text-green-600"
 						}`}>
 						{isOverBudget && "+"}
-						{Math.abs(quarterlyTarget.remaining).toFixed(1)} tCO₂e
+						{Math.abs(remaining).toFixed(1)} tCO₂e
 					</p>
 				</div>
 				<div>

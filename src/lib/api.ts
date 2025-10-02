@@ -22,6 +22,7 @@ import {
 	SupplierTarget,
 } from "@/types/supplier-types";
 import { UpstreamEmissionDetails } from "@/types/upstream-types";
+import { BudgetAllocationResult } from "@/hooks/useBudgetAllocation";
 
 // Mock 데이터 복사본 (수정 가능하도록)
 const _countries = [...countries];
@@ -32,9 +33,14 @@ const _supplierEmissionDetails = [...supplierEmissionDetails];
 const _supplierTargets = [...supplierTargets];
 const _upstreamEmissionDetails = [...upstreamEmissionDetails];
 
+// 예산 할당 데이터 저장 (로컬스토리지 기반)
+const getBudgetStorageKey = (companyId: string, year: number) =>
+	`budget-allocation-${companyId}-${year}`;
+
 // 유틸리티 함수들
 const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 const jitter = () => 200 + Math.random() * 600;
+const maybeFail = () => Math.random() < 0.15; // 15% 실패율
 
 // 기본 API 함수들 (과제에서 제공된 것)
 export async function fetchCountries(): Promise<Country[]> {
@@ -250,4 +256,29 @@ export async function fetchUpstreamEmissionDetails(
 		(d) => d.supplierId === supplierId
 	);
 	return details || null;
+}
+
+// 예산 할당 관련 API 함수들
+export async function fetchBudgetAllocation(
+	companyId: string,
+	year: number
+): Promise<BudgetAllocationResult | null> {
+	await delay(jitter());
+
+	const key = getBudgetStorageKey(companyId, year);
+	const data = localStorage.getItem(key);
+	return data ? JSON.parse(data) : null;
+}
+
+export async function saveBudgetAllocation(
+	companyId: string,
+	year: number,
+	budgetData: BudgetAllocationResult
+): Promise<BudgetAllocationResult> {
+	await delay(jitter());
+	if (maybeFail()) throw new Error("Save failed");
+
+	const key = getBudgetStorageKey(companyId, year);
+	localStorage.setItem(key, JSON.stringify(budgetData));
+	return budgetData;
 }

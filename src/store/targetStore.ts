@@ -5,28 +5,93 @@ import {
 	CompanyTargetManagement,
 	SeasonalWeights,
 	QuarterlyTarget,
+	MonthlyEmission,
 } from "@/types/target-types";
 import { round1 } from "@/utils/numberUtils";
-import { allocateMonthlyBudgetsFromQuarters } from "@/utils/allocateBudget";
 // YTD 계산을 인라인으로 처리하여 복잡성 제거
 import { upsertCompanyTarget, findTargetIndex } from "@/utils/storeUtils";
 import { defaultSeasonalWeights } from "@/lib/data";
+import { BudgetAllocationResult } from "@/hooks/useBudgetAllocation";
+
+// 유틸리티 함수들
+const createBudgetKey = (companyId: string, year: number): string =>
+	`${companyId}-${year}`;
+
+const calculateYtd = (
+	monthlyEmissions: MonthlyEmission[],
+	currentMonth?: number
+) => {
+	const targetMonth = currentMonth || new Date().getMonth() + 1;
+	return monthlyEmissions
+		.filter((me) => me.month <= targetMonth)
+		.reduce(
+			(acc, me) => ({
+				actual: acc.actual + (me.actual || 0),
+				budget: acc.budget + (me.budget || 0),
+			}),
+			{ actual: 0, budget: 0 }
+		);
+};
+
+const updateBudgetState = <T>(
+	state: TargetState,
+	stateKey: keyof TargetState,
+	key: string,
+	value: T
+) => ({
+	[stateKey]: {
+		...state[stateKey],
+		[key]: value,
+	},
+});
+
+const validateCompanyTarget = (
+	companyTargets: { [companyId: string]: CompanyTargetManagement },
+	companyId: string
+): CompanyTargetManagement | null => {
+	const companyTarget = companyTargets[companyId];
+	if (!companyTarget) return null;
+	return companyTarget;
+};
+
+const validateTargetIndex = (
+	targets: AnnualTarget[],
+	year: number
+): { target: AnnualTarget; index: number } | null => {
+	const targetIndex = findTargetIndex(
+		{ targets } as CompanyTargetManagement,
+		year
+	);
+	if (targetIndex < 0) return null;
+	return { target: targets[targetIndex], index: targetIndex };
+};
 
 interface TargetState {
 	// State
 	companyTargets: { [companyId: string]: CompanyTargetManagement };
 	seasonalWeights: SeasonalWeights; // 계절 가중치 설정
 
-	// Actions - 계절 가중치 설정
-	setSeasonalWeights: (weights: SeasonalWeights) => void;
+	// 예산 할당 관련 상태
+	budgetAllocations: { [key: string]: BudgetAllocationResult }; // "companyId-year" 형태의 키
+	budgetLoading: { [key: string]: boolean }; // 로딩 상태
+	budgetErrors: { [key: string]: string | null }; // 에러 상태
 
-	// Actions - 목표 설정 (나중에 서버 연결 시 사용)
-	// setAnnualTarget: (
-	// 	companyId: string,
-	// 	year: number,
-	// 	totalBudget: number,
-	// 	method: AllocationMethod
-	// ) => void;
+	// Actions - 예산 할당 관리
+	setBudgetAllocation: (
+		companyId: string,
+		year: number,
+		data: BudgetAllocationResult
+	) => void;
+	setBudgetLoading: (companyId: string, year: number, loading: boolean) => void;
+	setBudgetError: (
+		companyId: string,
+		year: number,
+		error: string | null
+	) => void;
+	getBudgetAllocation: (
+		companyId: string,
+		year: number
+	) => BudgetAllocationResult | null;
 
 	// Actions - 초기 데이터 로드 (더미 데이터용)
 	loadAnnualTarget: (companyId: string, target: AnnualTarget) => void;
@@ -54,9 +119,6 @@ interface TargetState {
 		year: number,
 		quarter: 1 | 2 | 3 | 4
 	) => QuarterlyTarget | null;
-
-	// 초기화
-	reset: () => void;
 }
 
 /**
@@ -73,51 +135,39 @@ export const useTargetStore = create<TargetState>()(
 				companyTargets: {},
 				seasonalWeights: defaultSeasonalWeights,
 
-				setSeasonalWeights: (weights) => {
-					// 간단한 검증: 모든 월(1-12)에 대해 가중치가 양수인지 확인
-					const isValid =
-						Object.keys(weights).length === 12 &&
-						Object.values(weights).every((w) => typeof w === "number" && w > 0);
+				// 예산 할당 관련 초기 상태
+				budgetAllocations: {},
+				budgetLoading: {},
+				budgetErrors: {},
 
-					if (!isValid) {
-						console.warn(
-							"Invalid seasonal weights provided, using default weights"
-						);
-						return;
-					}
-
-					set({ seasonalWeights: weights });
+				// 예산 할당 관련 액션들
+				setBudgetAllocation: (companyId, year, data) => {
+					const key = createBudgetKey(companyId, year);
+					set((state) =>
+						updateBudgetState(state, "budgetAllocations", key, data)
+					);
 				},
 
-				// 	//나중에 서버랑 연결하면 사용
-				// 	// const newAnnualTarget: AnnualTarget = {
-				// 	// 	year,
-				// 	// 	totalBudget,
-				// 	// 	allocationMethod: method,
-				// 	// 	quarterlyTargets,
-				// 	// 	monthlyEmissions,
-				// 	// 	ytdActual: 0,
-				// 	// 	ytdBudget: 0,
-				// 	// 	ytdVariance: 0,
-				// 	// };
+				setBudgetLoading: (companyId, year, loading) => {
+					const key = createBudgetKey(companyId, year);
+					set((state) =>
+						updateBudgetState(state, "budgetLoading", key, loading)
+					);
+				},
 
-				// 	// set(upsertCompanyTarget(state, companyId, newAnnualTarget));
-				// },
+				setBudgetError: (companyId, year, error) => {
+					const key = createBudgetKey(companyId, year);
+					set((state) => updateBudgetState(state, "budgetErrors", key, error));
+				},
+
+				getBudgetAllocation: (companyId, year) => {
+					const key = createBudgetKey(companyId, year);
+					return get().budgetAllocations[key] || null;
+				},
 
 				loadAnnualTarget: (companyId, target) => {
 					const state = get();
-					const currentMonth = new Date().getMonth() + 1;
-
-					// 간단한 YTD 계산 (인라인)
-					const ytd = target.monthlyEmissions
-						.filter((me) => me.month <= currentMonth)
-						.reduce(
-							(acc, me) => ({
-								actual: acc.actual + (me.actual || 0),
-								budget: acc.budget + (me.budget || 0),
-							}),
-							{ actual: 0, budget: 0 }
-						);
+					const ytd = calculateYtd(target.monthlyEmissions);
 
 					const loadedTarget: AnnualTarget = {
 						...target,
@@ -131,13 +181,19 @@ export const useTargetStore = create<TargetState>()(
 
 				updateQuarterlyTarget: (companyId, year, quarter, budget) => {
 					const state = get();
-					const companyTarget = state.companyTargets[companyId];
+					const companyTarget = validateCompanyTarget(
+						state.companyTargets,
+						companyId
+					);
 					if (!companyTarget) return;
 
-					const targetIndex = findTargetIndex(companyTarget, year);
-					if (targetIndex < 0) return;
+					const targetValidation = validateTargetIndex(
+						companyTarget.targets,
+						year
+					);
+					if (!targetValidation) return;
 
-					const annualTarget = companyTarget.targets[targetIndex];
+					const { target: annualTarget } = targetValidation;
 					const quarterlyTargets = [...annualTarget.quarterlyTargets];
 					const quarterIndex = quarterlyTargets.findIndex(
 						(qt) => qt.quarter === quarter
@@ -152,19 +208,19 @@ export const useTargetStore = create<TargetState>()(
 						remaining: round1(budget - quarterlyTargets[quarterIndex].actual),
 					};
 
-					// 월별 예산 재계산
-					const monthlyEmissions = allocateMonthlyBudgetsFromQuarters(
-						quarterlyTargets,
-						year
-					);
+					// 월별 예산 재계산 (분기별 예산을 3개월로 균등 분배)
+					const updatedMonthlyEmissions = annualTarget.monthlyEmissions.map(
+						(me) => {
+							const quarterIndex = Math.floor((me.month - 1) / 3);
+							const quarterlyBudget = quarterlyTargets[quarterIndex].budget;
+							const monthlyBudget = round1(quarterlyBudget / 3);
 
-					// 기존 actual 값 유지
-					const updatedMonthlyEmissions = monthlyEmissions.map((newMe) => {
-						const existingMe = annualTarget.monthlyEmissions.find(
-							(me) => me.month === newMe.month
-						);
-						return existingMe ? { ...newMe, actual: existingMe.actual } : newMe;
-					});
+							return {
+								...me,
+								budget: monthlyBudget,
+							};
+						}
+					);
 
 					// 새 totalBudget 계산
 					const newTotalBudget = quarterlyTargets.reduce(
@@ -184,13 +240,19 @@ export const useTargetStore = create<TargetState>()(
 
 				recordMonthlyEmission: (companyId, year, month, actual) => {
 					const state = get();
-					const companyTarget = state.companyTargets[companyId];
+					const companyTarget = validateCompanyTarget(
+						state.companyTargets,
+						companyId
+					);
 					if (!companyTarget) return;
 
-					const targetIndex = findTargetIndex(companyTarget, year);
-					if (targetIndex < 0) return;
+					const targetValidation = validateTargetIndex(
+						companyTarget.targets,
+						year
+					);
+					if (!targetValidation) return;
 
-					const annualTarget = companyTarget.targets[targetIndex];
+					const { target: annualTarget } = targetValidation;
 					const monthlyEmissions = [...annualTarget.monthlyEmissions];
 					const monthIndex = monthlyEmissions.findIndex(
 						(me) => me.month === month
@@ -204,17 +266,8 @@ export const useTargetStore = create<TargetState>()(
 						actual,
 					};
 
-					// 간단한 YTD 재계산 (인라인)
-					const currentMonth = new Date().getMonth() + 1;
-					const ytd = monthlyEmissions
-						.filter((me) => me.month <= currentMonth)
-						.reduce(
-							(acc, me) => ({
-								actual: acc.actual + (me.actual || 0),
-								budget: acc.budget + (me.budget || 0),
-							}),
-							{ actual: 0, budget: 0 }
-						);
+					// YTD 재계산
+					const ytd = calculateYtd(monthlyEmissions);
 
 					const updatedTarget: AnnualTarget = {
 						...annualTarget,
@@ -243,13 +296,6 @@ export const useTargetStore = create<TargetState>()(
 							(qt) => qt.quarter === quarter
 						) || null
 					);
-				},
-
-				reset: () => {
-					set({
-						companyTargets: {},
-						seasonalWeights: defaultSeasonalWeights,
-					});
 				},
 			}),
 			{

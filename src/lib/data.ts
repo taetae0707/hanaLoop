@@ -824,9 +824,9 @@ export const dummyAnnualTarget: AnnualTarget = {
 		{ year: 2025, month: 11, actual: 0, budget: 0 },
 		{ year: 2025, month: 12, actual: 0, budget: 0 },
 	],
-	ytdActual: 0,
-	ytdBudget: 923.7,
-	ytdVariance: 51.9,
+	ytdActual: 865.8,
+	ytdBudget: 0,
+	ytdVariance: 0,
 };
 // export const dummyAnnualTarget: AnnualTarget = {
 // 	year: 2025,

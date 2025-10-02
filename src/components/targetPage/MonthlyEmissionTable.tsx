@@ -47,12 +47,6 @@ export function MonthlyEmissionTable({
 			.reduce((sum, me) => sum + me.actual, 0);
 	};
 
-	const calculateCumulativeBudget = (upToMonth: number): number => {
-		return monthlyEmissions
-			.filter((me) => me.month <= upToMonth)
-			.reduce((sum, me) => sum + me.budget, 0);
-	};
-
 	return (
 		<Card className="overflow-hidden">
 			<div className="px-6 py-4 border-b border-gray-200">
@@ -78,10 +72,7 @@ export function MonthlyEmissionTable({
 								차이 (tCO₂e)
 							</th>
 							<th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-								누적 실제
-							</th>
-							<th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-								누적 예산
+								누적 실제 배출량
 							</th>
 							<th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
 								작업
@@ -93,7 +84,6 @@ export function MonthlyEmissionTable({
 							const variance = me.actual - me.budget;
 							const isOverBudget = variance > 0;
 							const cumulative = calculateCumulative(me.month);
-							const cumulativeBudget = calculateCumulativeBudget(me.month);
 							const isEditing = editingMonth === me.month;
 
 							return (
@@ -144,9 +134,6 @@ export function MonthlyEmissionTable({
 									</td>
 									<td className="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold text-gray-900">
 										{cumulative > 0 ? cumulative.toFixed(1) : "-"}
-									</td>
-									<td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-700">
-										{cumulativeBudget.toFixed(1)}
 									</td>
 									<td className="px-6 py-4 whitespace-nowrap text-sm text-center">
 										{isEditing ? (

@@ -93,3 +93,36 @@ export function convertMonthlyToQuarterlyBudgets(
 
 	return quarterlyTargets;
 }
+
+/**
+ * 월별 예산의 총합 계산
+ * @param monthlyBudgets 월별 예산 배열
+ * @returns 총 예산 합계
+ */
+export function calculateTotalMonthlyBudget(
+	monthlyBudgets: MonthlyEmission[]
+): number {
+	return round1(monthlyBudgets.reduce((sum, month) => sum + month.budget, 0));
+}
+
+/**
+ * 분기별 예산의 총합 계산 (ytdBudget용)
+ */
+export function calculateTotalQuarterlyBudget(
+	quarterlyTargets: QuarterlyTarget[]
+): number {
+	return round1(
+		quarterlyTargets.reduce((sum, quarter) => sum + quarter.budget, 0)
+	);
+}
+
+/**
+ * YTD 예산과 실제값의 차이 계산 (ytdVariance용)
+
+ */
+export function calculateYtdVariance(
+	ytdBudget: number,
+	ytdActual: number
+): number {
+	return round1(ytdBudget - ytdActual);
+}
