@@ -7,9 +7,11 @@ import { Breadcrumb } from "@/components/common/nav/Breadcrumb";
 import { StatCard } from "@/components/common/stats/Stats";
 import { LoadingState } from "@/components/common/LoadingState";
 import { ErrorState } from "@/components/common/ErrorState";
-import { EmissionDetailsTable } from "@/components/upstreamPage/EmissionDetailsTable";
-import { TargetManagementSection } from "@/components/targetPage/TargetManagementSection";
-import { MonthlyEmissionTable } from "@/components/targetPage/MonthlyEmissionTable";
+import {
+	TargetManagementSection,
+	MonthlyEmissionTable,
+	EmissionDetailsTable,
+} from "@/components/targetManagePage";
 import { AnnualTrendChart } from "@/components/charts/AnnualTrendChart";
 import { QuarterlyComparisonChart } from "@/components/charts/QuarterlyComparisonChart";
 import { Button } from "@/components/ui/button";
@@ -38,7 +40,6 @@ import { dummyAnnualTarget, defaultSeasonalWeights } from "@/lib/data";
 import {
 	getAllocationMethodText,
 	getAllocationMethodDescription,
-	calculateRemainingBudget,
 	calculateCurrentTotalEmissions,
 	calculateCurrentTotalBudget,
 	calculateCurrentRemainingBudget,
@@ -57,11 +58,7 @@ export default function SupplierTargetManagement() {
 	const targetStore = useTargetStore();
 
 	// 목표 관리 Hooks
-	const {
-		annualTarget,
-		ytd,
-		achievementRate: ytdAchievementRate,
-	} = useAnnualTarget(supplierId, year);
+	const { annualTarget, ytd } = useAnnualTarget(supplierId, year);
 	const { monthlyEmissions, recordEmission } = useMonthlyEmission(
 		supplierId,
 		year
@@ -196,56 +193,6 @@ export default function SupplierTargetManagement() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [supplierId]);
 
-	// 월별 가중치 계산값 콘솔 출력 (테스트용)
-	useEffect(() => {
-		if (annualTarget && budgetAllocationData && supplierId) {
-			console.log("=== 월별 가중치 계산 테스트 ===");
-			console.log("협력사 ID:", supplierId);
-			console.log("기본 계절 가중치:", defaultSeasonalWeights);
-			console.log("원본 연간 목표:", annualTarget);
-			console.log("가중치 계산된 예산 데이터:", budgetAllocationData);
-
-			// 합쳐진 월별 데이터 출력
-			if (mergedMonthlyEmissions) {
-				console.log("합쳐진 월별 데이터 (가중치 예산 + 더미 실제값):");
-				mergedMonthlyEmissions.forEach((monthly: MonthlyEmission) => {
-					const weight = defaultSeasonalWeights[monthly.month] || 1;
-					console.log(
-						`${
-							monthly.month
-						}월: 가중치(${weight}) → 예산 ${monthly.budget.toFixed(
-							2
-						)} tCO2e, 실적 ${monthly.actual.toFixed(2)} tCO2e`
-					);
-				});
-			}
-
-			// 합쳐진 분기별 목표도 출력
-			if (mergedQuarterlyTargets) {
-				console.log("합쳐진 분기별 목표:");
-				mergedQuarterlyTargets.forEach((quarterly: QuarterlyTarget) => {
-					console.log(
-						`Q${quarterly.quarter}: 예산 ${quarterly.budget.toFixed(
-							2
-						)} tCO2e, 실적 ${quarterly.actual.toFixed(2)} tCO2e`
-					);
-				});
-			}
-
-			console.log("YTD 정보:");
-			console.log(`- YTD 예산: ${annualTarget.ytdBudget.toFixed(2)} tCO2e`);
-			console.log(`- YTD 실적: ${annualTarget.ytdActual.toFixed(2)} tCO2e`);
-			console.log(`- YTD 분산: ${annualTarget.ytdVariance.toFixed(2)} tCO2e`);
-			console.log("================================");
-		}
-	}, [
-		annualTarget,
-		budgetAllocationData,
-		supplierId,
-		mergedMonthlyEmissions,
-		mergedQuarterlyTargets,
-	]);
-
 	// YTD는 loadAnnualTarget에서 자동으로 계산되므로 별도 처리 불필요
 
 	const handleRecordEmission = (month: number, actual: number) => {
@@ -285,16 +232,6 @@ export default function SupplierTargetManagement() {
 
 	// 전체 연간 예산 (12월 전체 예산)
 	const totalAnnualBudget = budgetAllocationData?.totalMonthlyBudget || 0;
-
-	// 디버깅용 콘솔 로그
-	console.log("=== 미니 대시보드 계산 결과 ===");
-	console.log("현재 월:", currentMonth);
-	console.log("현재까지 총 배출량:", currentTotalEmissions);
-	console.log("현재까지 총 예산:", currentTotalBudget);
-	console.log("현재까지 남은 예산:", currentRemainingBudget);
-	console.log("예산 사용률:", budgetUsageRate);
-	console.log("전체 연간 예산:", totalAnnualBudget);
-	console.log("================================");
 
 	return (
 		<Layout>

@@ -2,21 +2,9 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
-import {
-	Home,
-	BarChart3,
-	Building2,
-	FileText,
-	Settings,
-	Leaf,
-	TrendingUp,
-	AlertTriangle,
-	Users,
-	Factory,
-	Network,
-	Target,
-} from "lucide-react";
+import { Home, Users, Factory, Network, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navigation = [
@@ -53,12 +41,20 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 				)}>
 				{/* Logo */}
 				<div className="flex items-center h-16 px-6 border-b border-gray-200">
-					<div className="flex items-center space-x-2">
-						<div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-							<Leaf className="w-5 h-5 text-white" />
+					<Link
+						href="/"
+						className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
+						<div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
+							<Image
+								src="/hanaloop-logo.png"
+								alt="HanaLoop Logo"
+								width={32}
+								height={32}
+								className="object-contain"
+							/>
 						</div>
-						<span className="text-xl font-bold text-gray-900">Hana Eco</span>
-					</div>
+						<span className="text-xl font-bold text-gray-900">HanaLoop</span>
+					</Link>
 				</div>
 
 				{/* Navigation */}
