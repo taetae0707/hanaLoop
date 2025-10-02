@@ -39,6 +39,10 @@ import {
 	getAllocationMethodText,
 	getAllocationMethodDescription,
 	calculateRemainingBudget,
+	calculateCurrentTotalEmissions,
+	calculateCurrentTotalBudget,
+	calculateCurrentRemainingBudget,
+	calculateBudgetUsageRate,
 } from "@/utils/targetCalculations";
 import { MonthlyEmission, QuarterlyTarget } from "@/types/target-types";
 
@@ -263,9 +267,34 @@ export default function SupplierTargetManagement() {
 		);
 	}
 
-	const supplierAchievementRate =
-		(supplier.totalEmissions / supplierTarget.totalTargetEmissions) * 100;
-	const isOverTarget = supplierAchievementRate > 100;
+	// 월별 데이터 기반으로 현재까지의 누적 값들 계산
+	const currentTotalEmissions = mergedMonthlyEmissions
+		? calculateCurrentTotalEmissions(mergedMonthlyEmissions, currentMonth)
+		: 0;
+	const currentTotalBudget = mergedMonthlyEmissions
+		? calculateCurrentTotalBudget(mergedMonthlyEmissions, currentMonth)
+		: 0;
+	const currentRemainingBudget = mergedMonthlyEmissions
+		? calculateCurrentRemainingBudget(mergedMonthlyEmissions, currentMonth)
+		: 0;
+	const budgetUsageRate =
+		currentTotalBudget > 0
+			? calculateBudgetUsageRate(currentTotalEmissions, currentTotalBudget)
+			: 0;
+	const isOverBudget = budgetUsageRate > 100;
+
+	// 전체 연간 예산 (12월 전체 예산)
+	const totalAnnualBudget = budgetAllocationData?.totalMonthlyBudget || 0;
+
+	// 디버깅용 콘솔 로그
+	console.log("=== 미니 대시보드 계산 결과 ===");
+	console.log("현재 월:", currentMonth);
+	console.log("현재까지 총 배출량:", currentTotalEmissions);
+	console.log("현재까지 총 예산:", currentTotalBudget);
+	console.log("현재까지 남은 예산:", currentRemainingBudget);
+	console.log("예산 사용률:", budgetUsageRate);
+	console.log("전체 연간 예산:", totalAnnualBudget);
+	console.log("================================");
 
 	return (
 		<Layout>
@@ -305,49 +334,57 @@ export default function SupplierTargetManagement() {
 					]}
 				/>
 
-				{/* 미니 대쉬보드 */}
-				<div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-					<StatCard
-						icon={<Target className="h-8 w-8 text-purple-600" />}
-						label="목표 배출량"
-						value={`${supplierTarget.totalTargetEmissions.toFixed(1)} tCO2e`}
-					/>
-					<StatCard
-						icon={<BarChart3 className="h-8 w-8 text-blue-600" />}
-						label="현재 총배출량"
-						value={`${supplier.totalEmissions.toFixed(1)} tCO2e`}
-					/>
-					{annualTarget && ytd && (
+				{/* 배출량 모니터링 대시보드 */}
+				<div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+					{/* 헤더 */}
+					<div className="mb-6">
+						<h2 className="text-2xl font-bold text-gray-900 mb-2">
+							2025년 배출량 모니터링
+						</h2>
+						<p className="text-gray-600">
+							월별 예산 대비 실제 배출량 현황을 실시간으로 모니터링합니다.
+						</p>
+					</div>
+
+					{/* 미니 대시보드 */}
+					<div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+						<StatCard
+							icon={<Target className="h-8 w-8 text-purple-600" />}
+							label="예산 배출량"
+							value={`${totalAnnualBudget.toFixed(1)} tCO2e`}
+						/>
+						<StatCard
+							icon={<BarChart3 className="h-8 w-8 text-blue-600" />}
+							label="현재 총배출량"
+							value={`${currentTotalEmissions.toFixed(1)} tCO2e`}
+						/>
 						<StatCard
 							icon={<BarChart3 className="h-8 w-8 text-orange-600" />}
 							label="남은 예산"
-							value={`${calculateRemainingBudget(
-								annualTarget.totalBudget,
-								ytd.actual
-							).toFixed(1)} tCO2e`}
+							value={`${currentRemainingBudget.toFixed(1)} tCO2e`}
 						/>
-					)}
-					<StatCard
-						icon={
-							isOverTarget ? (
-								<TrendingUp className="h-8 w-8 text-red-600" />
-							) : (
-								<TrendingDown className="h-8 w-8 text-green-600" />
-							)
-						}
-						label="달성률"
-						value={`${supplierAchievementRate.toFixed(1)}%`}
-					/>
-					{annualTarget && (
 						<StatCard
-							icon={<Target className="h-8 w-8 text-green-600" />}
-							label="배분방식"
-							value={getAllocationMethodText(annualTarget.allocationMethod)}
-							description={getAllocationMethodDescription(
-								annualTarget.allocationMethod
-							)}
+							icon={
+								isOverBudget ? (
+									<TrendingUp className="h-8 w-8 text-red-600" />
+								) : (
+									<TrendingDown className="h-8 w-8 text-green-600" />
+								)
+							}
+							label="예산 사용률"
+							value={`${budgetUsageRate.toFixed(1)}%`}
 						/>
-					)}
+						{annualTarget && (
+							<StatCard
+								icon={<Target className="h-8 w-8 text-green-600" />}
+								label="배분방식"
+								value={getAllocationMethodText(annualTarget.allocationMethod)}
+								description={getAllocationMethodDescription(
+									annualTarget.allocationMethod
+								)}
+							/>
+						)}
+					</div>
 				</div>
 
 				{/* 총 배출량 근거 자료 */}
