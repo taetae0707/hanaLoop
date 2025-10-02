@@ -14,25 +14,48 @@ import {
 } from "recharts";
 import { MonthlyEmission } from "@/types/target-types";
 
+const CustomTooltip = ({ active, payload, label }: any) => {
+	if (active && payload && payload.length) {
+		const actualData = payload.find((p: any) => p.dataKey === "실제배출량");
+		const budgetData = payload.find((p: any) => p.dataKey === "예산배출량");
+
+		if (actualData && budgetData) {
+			const actual = actualData.value;
+			const budget = budgetData.value;
+			const excess = actual > budget ? actual - budget : 0;
+
+			return (
+				<div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
+					<p className="font-medium text-gray-900">{label}</p>
+					<p className="text-sm text-gray-600">
+						실제배출량: <span className="font-medium">{actual} tCO₂e</span>
+					</p>
+					<p className="text-sm text-gray-600">
+						예산배출량: <span className="font-medium">{budget} tCO₂e</span>
+					</p>
+					{excess > 0 && (
+						<p className="text-sm font-medium text-red-600">
+							예산 초과량: {excess.toFixed(1)} tCO₂e
+						</p>
+					)}
+				</div>
+			);
+		}
+	}
+	return null;
+};
+
 interface AnnualTrendChartProps {
 	monthlyEmissions: MonthlyEmission[];
 }
 
 export function AnnualTrendChart({ monthlyEmissions }: AnnualTrendChartProps) {
 	const chartData = useMemo(() => {
-		let cumulativeActual = 0;
-		let cumulativeBudget = 0;
-
 		return monthlyEmissions.map((me) => {
-			cumulativeActual += me.actual;
-			cumulativeBudget += me.budget;
-
 			return {
 				month: `${me.month}월`,
 				실제배출량: Math.round(me.actual * 10) / 10,
 				예산배출량: Math.round(me.budget * 10) / 10,
-				누적실제: Math.round(cumulativeActual * 10) / 10,
-				누적예산: Math.round(cumulativeBudget * 10) / 10,
 			};
 		});
 	}, [monthlyEmissions]);
@@ -46,51 +69,41 @@ export function AnnualTrendChart({ monthlyEmissions }: AnnualTrendChartProps) {
 				</p>
 			</div>
 			<div className="p-6">
-				<ResponsiveContainer
-					width="100%"
-					height={400}>
-					<LineChart
-						data={chartData}
-						margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-						<CartesianGrid strokeDasharray="3 3" />
-						<XAxis dataKey="month" />
-						<YAxis
-							label={{ value: "tCO₂e", angle: -90, position: "insideLeft" }}
-						/>
-						<Tooltip />
-						<Legend />
-						<Line
-							type="monotone"
-							dataKey="예산배출량"
-							stroke="#9333EA"
-							strokeWidth={2}
-							strokeDasharray="5 5"
-							dot={{ r: 4 }}
-						/>
-						<Line
-							type="monotone"
-							dataKey="실제배출량"
-							stroke="#3B82F6"
-							strokeWidth={2}
-							dot={{ r: 4 }}
-						/>
-						<Line
-							type="monotone"
-							dataKey="누적예산"
-							stroke="#A78BFA"
-							strokeWidth={2}
-							strokeDasharray="3 3"
-							dot={false}
-						/>
-						<Line
-							type="monotone"
-							dataKey="누적실제"
-							stroke="#10B981"
-							strokeWidth={3}
-							dot={false}
-						/>
-					</LineChart>
-				</ResponsiveContainer>
+				<div style={{ height: "30rem" }}>
+					<ResponsiveContainer
+						width="100%"
+						height="100%">
+						<LineChart
+							data={chartData}
+							margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+							<CartesianGrid strokeDasharray="3 3" />
+							<XAxis dataKey="month" />
+							<YAxis
+								label={{ value: "tCO₂e", angle: -90, position: "insideLeft" }}
+								domain={[0, 150]}
+								tickCount={7}
+								tick={{ fontSize: 12 }}
+							/>
+							<Tooltip content={<CustomTooltip />} />
+							<Legend />
+							<Line
+								type="monotone"
+								dataKey="예산배출량"
+								stroke="#6B7280"
+								strokeWidth={2}
+								strokeDasharray="5 5"
+								dot={{ r: 4 }}
+							/>
+							<Line
+								type="monotone"
+								dataKey="실제배출량"
+								stroke="#10B981"
+								strokeWidth={2}
+								dot={{ r: 4 }}
+							/>
+						</LineChart>
+					</ResponsiveContainer>
+				</div>
 			</div>
 		</Card>
 	);

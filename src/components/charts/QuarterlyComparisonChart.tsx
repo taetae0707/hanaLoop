@@ -38,31 +38,36 @@ export function QuarterlyComparisonChart({
 				</p>
 			</div>
 			<div className="p-6">
-				<ResponsiveContainer
-					width="100%"
-					height={350}>
-					<BarChart
-						data={chartData}
-						margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-						<CartesianGrid strokeDasharray="3 3" />
-						<XAxis dataKey="quarter" />
-						<YAxis
-							label={{ value: "tCO₂e", angle: -90, position: "insideLeft" }}
-						/>
-						<Tooltip />
-						<Legend />
-						<Bar
-							dataKey="예산"
-							fill="#9333EA"
-							radius={[8, 8, 0, 0]}
-						/>
-						<Bar
-							dataKey="실제"
-							fill="#3B82F6"
-							radius={[8, 8, 0, 0]}
-						/>
-					</BarChart>
-				</ResponsiveContainer>
+				<div style={{ height: "30rem" }}>
+					<ResponsiveContainer
+						width="100%"
+						height="100%">
+						<BarChart
+							data={chartData}
+							margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+							<CartesianGrid strokeDasharray="3 3" />
+							<XAxis dataKey="quarter" />
+							<YAxis
+								label={{ value: "tCO₂e", angle: -90, position: "insideLeft" }}
+								domain={[0, 450]}
+								tickCount={10}
+								tick={{ fontSize: 12 }}
+							/>
+							<Tooltip />
+							<Legend />
+							<Bar
+								dataKey="예산"
+								fill="#6B7280"
+								radius={[8, 8, 0, 0]}
+							/>
+							<Bar
+								dataKey="실제"
+								fill="#10B981"
+								radius={[8, 8, 0, 0]}
+							/>
+						</BarChart>
+					</ResponsiveContainer>
+				</div>
 			</div>
 		</Card>
 	);

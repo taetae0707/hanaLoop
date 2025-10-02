@@ -74,10 +74,12 @@ export default function SupplierTargetManagement() {
 
 	// 가중치 계산된 월별 데이터와 실제 데이터 합치기 (useMemo로 관리)
 	const mergedMonthlyEmissions = useMemo(() => {
-		if (!annualTarget || !budgetAllocationData) return monthlyEmissions;
+		if (!annualTarget || !budgetAllocationData) {
+			return monthlyEmissions;
+		}
 
 		// 계산된 예산 데이터와 더미 데이터의 실제 값을 합침
-		return budgetAllocationData.monthlyBudgets.map(
+		const result = budgetAllocationData.monthlyBudgets.map(
 			(budgetItem: MonthlyEmission) => {
 				const actualItem = annualTarget.monthlyEmissions.find(
 					(actual) => actual.month === budgetItem.month
@@ -88,14 +90,17 @@ export default function SupplierTargetManagement() {
 				};
 			}
 		);
+
+		return result;
 	}, [annualTarget, budgetAllocationData, monthlyEmissions]);
 
 	// 가중치 계산된 분기 목표와 실제 데이터 합치기 (useMemo로 관리)
 	const mergedQuarterlyTargets = useMemo(() => {
-		if (!annualTarget || !budgetAllocationData)
+		if (!annualTarget || !budgetAllocationData) {
 			return annualTarget?.quarterlyTargets || null;
+		}
 
-		return budgetAllocationData.quarterlyTargets.map(
+		const result = budgetAllocationData.quarterlyTargets.map(
 			(budgetItem: QuarterlyTarget) => {
 				const actualItem = annualTarget.quarterlyTargets.find(
 					(actual) => actual.quarter === budgetItem.quarter
@@ -106,6 +111,8 @@ export default function SupplierTargetManagement() {
 				};
 			}
 		);
+
+		return result;
 	}, [annualTarget, budgetAllocationData]);
 
 	const [supplier, setSupplier] = useState<Supplier | null>(null);

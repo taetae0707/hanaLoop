@@ -50,7 +50,7 @@ export function MonthlyEmissionTable({
 	return (
 		<Card className="overflow-hidden">
 			<div className="px-6 py-4 border-b border-gray-200">
-				<h3 className="text-lg font-medium text-gray-900">월별 배출 실적</h3>
+				<h3 className="text-lg font-medium text-gray-900">월별 배출량 관리</h3>
 				<p className="text-sm text-gray-500">
 					월별 예산과 실제 배출량을 기록하고 관리합니다
 				</p>
@@ -63,10 +63,10 @@ export function MonthlyEmissionTable({
 								월
 							</th>
 							<th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-								예산 (tCO₂e)
+								예산 배출량 (tCO₂e)
 							</th>
 							<th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-								실제 (tCO₂e)
+								실제 배출량 (tCO₂e)
 							</th>
 							<th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
 								차이 (tCO₂e)
