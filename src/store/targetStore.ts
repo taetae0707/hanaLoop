@@ -266,12 +266,33 @@ export const useTargetStore = create<TargetState>()(
 						actual,
 					};
 
+					// 분기별 실제 배출량 재계산
+					const quarterlyTargets = annualTarget.quarterlyTargets.map((qt) => {
+						const quarterStartMonth = (qt.quarter - 1) * 3 + 1;
+						const quarterEndMonth = qt.quarter * 3;
+
+						// 해당 분기의 월별 실제 배출량 합산
+						const quarterlyActual = monthlyEmissions
+							.filter(
+								(me) =>
+									me.month >= quarterStartMonth && me.month <= quarterEndMonth
+							)
+							.reduce((sum, me) => sum + me.actual, 0);
+
+						return {
+							...qt,
+							actual: round1(quarterlyActual),
+							remaining: round1(qt.budget - quarterlyActual),
+						};
+					});
+
 					// YTD 재계산
 					const ytd = calculateYtd(monthlyEmissions);
 
 					const updatedTarget: AnnualTarget = {
 						...annualTarget,
 						monthlyEmissions,
+						quarterlyTargets,
 						ytdActual: round1(ytd.actual),
 						ytdBudget: round1(ytd.budget),
 						ytdVariance: round1(ytd.actual - ytd.budget),

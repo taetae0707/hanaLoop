@@ -100,7 +100,6 @@ export function TargetManagementSection({
 								budgetUsageRate={getBudgetUsageRate(1)}
 								isOverBudget={getIsOverBudget(1)}
 								remaining={getRemaining(1)}
-								onUpdateBudget={q1Progress.updateBudget}
 							/>
 						)}
 						{getQuarterlyTarget(2) && (
@@ -109,7 +108,6 @@ export function TargetManagementSection({
 								budgetUsageRate={getBudgetUsageRate(2)}
 								isOverBudget={getIsOverBudget(2)}
 								remaining={getRemaining(2)}
-								onUpdateBudget={q2Progress.updateBudget}
 							/>
 						)}
 						{getQuarterlyTarget(3) && (
@@ -118,7 +116,6 @@ export function TargetManagementSection({
 								budgetUsageRate={getBudgetUsageRate(3)}
 								isOverBudget={getIsOverBudget(3)}
 								remaining={getRemaining(3)}
-								onUpdateBudget={q3Progress.updateBudget}
 							/>
 						)}
 						{getQuarterlyTarget(4) && (
@@ -127,7 +124,6 @@ export function TargetManagementSection({
 								budgetUsageRate={getBudgetUsageRate(4)}
 								isOverBudget={getIsOverBudget(4)}
 								remaining={getRemaining(4)}
-								onUpdateBudget={q4Progress.updateBudget}
 							/>
 						)}
 					</div>
